@@ -1,0 +1,13 @@
+{
+  "Database": {
+    "Type" : "MongoDB",
+    "MongoDB": {
+      "URL": "127.0.0.1",
+      "Database": "pet-operational"
+    }
+  },
+  "Server": {
+    "Hostname": "",
+    "Port": 80
+  }
+}
