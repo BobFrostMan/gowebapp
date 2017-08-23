@@ -56,3 +56,21 @@ func Connect(d Info) {
 	}
 
 }
+
+// CheckConnection returns true if MongoDB is available
+func CheckConnection() bool {
+	if Mongo == nil {
+		Connect(databases)
+	}
+
+	if Mongo != nil {
+		return true
+	}
+
+	return false
+}
+
+// ReadConfig returns the database information
+func ReadConfig() Info {
+	return databases
+}
