@@ -1,11 +1,26 @@
 var app = angular.module('loginModule', []);
-app.controller("LoginCtrl", function($scope){
-    $scope.errVisible = "hidden";
+app.controller("LoginCtrl", loginController);
 
-    $scope.loginHandler = function(){
-        $scope.name = $scope.name_value;
-        $scope.password = $scope.pass_value;
-        $scope.errVisible = "visible";
-        $scope.error = "You've entered " + $scope.name + " and " + $scope.password;
+function loginController($scope, $http){
+    $scope.errVisible = "hidden";
+    $scope.loginHandler = login;
+
+    function login(){
+            $scope.name = $scope.name_value;
+            $scope.password = $scope.pass_value;
+
+            $http({
+                method : "GET",
+                url : "/users"
+            }).then(
+                function mySuccess(response) {
+                    $scope.data = response.data;
+                }, function myError(response) {
+                    $scope.status = response.statusText;
+                }
+            );
+
+            $scope.errVisible = "visible";
+            $scope.error = "You've entered " + $scope.name + " and " + $scope.password;
     };
-})
+}

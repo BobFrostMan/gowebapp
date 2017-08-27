@@ -109,3 +109,29 @@ func UserByLogin(login string) (*User, error) {
 	return &user, err
 }
 
+// UserByLogin
+// Returns user by given login and error
+func UserList() ([]User, error) {
+	var err error
+	var users []User
+	switch database.ReadConfig().Type {
+	case database.TypeMongoDB:
+		if database.CheckConnection() {
+			session := database.Mongo.Copy()
+			defer session.Close()
+			c := session.DB(database.ReadConfig().MongoDB.Database).C(UsersCollection)
+			err = c.Find(bson.M{}).All(&users)
+		} else {
+			err = NoDBConnection
+		}
+	default:
+		err = DBNotSelected
+	}
+
+	if err != nil{
+		// TODO: implement proper message for this case
+		log.Println(UserNotFound)
+	}
+	return users, err
+}
+

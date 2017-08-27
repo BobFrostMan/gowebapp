@@ -9,6 +9,7 @@ import (
 	"gowebapp/pet/app/shared/server"
 	"gowebapp/pet/app/shared/database"
 	"gowebapp/pet/app/model"
+	"gowebapp/pet/app/route"
 )
 
 // *****************************************************************************
@@ -33,6 +34,12 @@ func main() {
 
 	// Create initial DB entities
 	createDefaultDBEntities()
+
+	// Configure API endpoint, register handlers
+	route.ConfigRoutes()
+
+	// Starting server using configuration from config
+	route.StartServer(&config.Server)
 }
 
 
