@@ -6,9 +6,8 @@ import (
 	"gowebapp/pet/app/model"
 	"log"
 	"gowebapp/pet/app/shared/passhash"
-	"io"
-	"fmt"
 	"strconv"
+	"encoding/json"
 )
 
 // ConfigRoutes
@@ -31,9 +30,11 @@ func StartServer(server *server.Server)  {
 // Returns list of all users as json in payload
 func users(w http.ResponseWriter, req *http.Request)  {
 	users, _ := model.UserList()
-	for _, user := range users{
-		io.WriteString(w, fmt.Sprintf("%s", user))
+	jsonUsers, err := json.Marshal(&users)
+	if err != nil{
+		log.Printf("Failed to parse users data:\n%s", jsonUsers)
 	}
+	w.Write(jsonUsers)
 }
 
 // auth
@@ -42,10 +43,11 @@ func auth(w http.ResponseWriter, req *http.Request){
 	req.ParseForm()
 	login := req.Form.Get("login")
 	password := req.Form.Get("pass")
+	log.Printf("Attempt to login as '%s'", login)
 	user, err := model.UserByLogin(login)
 	if err != nil {
 		log.Printf("User '%s' not found", login)
-		http.NotFound(w, req);
+		response(http.StatusForbidden, "Credential data doesn't match to any user", w)
 		return
 	}
 	if err = passhash.CompareHashAndPassword(user.Password, password); err != nil{
@@ -53,6 +55,7 @@ func auth(w http.ResponseWriter, req *http.Request){
 		response(http.StatusForbidden, "Credential data doesn't match to any user", w)
 		return
 	}
+	log.Printf("User '%s' successfully logged in", login)
 	// TODO: save session to db here
 	// TODO: set session id here
 }
@@ -61,5 +64,12 @@ func auth(w http.ResponseWriter, req *http.Request){
 // Returns response, with given code and message, using given response writer
 func response(status int, msg string, w http.ResponseWriter)  {
 	w.WriteHeader(status)
-	io.WriteString(w, fmt.Sprintf("%s - %s", status, msg))
+	resp := ErrorResponse{Code: status, Message: msg}
+	response, _ := json.Marshal(resp)
+	w.Write(response)
+}
+
+type ErrorResponse struct{
+	Code int `json:"code"`
+	Message string `json:"message"`
 }

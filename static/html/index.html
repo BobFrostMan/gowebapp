@@ -8,47 +8,44 @@
     <script src="../js/popper-1.12.3.js"></script>
     <script src="../js/bootstrap.js"></script>
     <script src="../js/angular.js"></script>
+    <script src="../app.js"></script>
+    <script src="../service/user-service.js"></script>
     <script src="../controller/login.js"></script>
 </head>
 
-<body ng-app="loginModule">
+<body ng-app="app">
 
     <div class="container">
         <div class="row">
             <div class="col-md-12">
                 <div class="page-header">
-                    <h2>Already broke something?</h2>
+                  <!--  <h2>Already broke something?</h2>-->
                     <h2> </h2>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-12">
+        <div class="col-md-12" ng-controller="LoginCtrl">
             <div>
-                <h4>Report it! But first things first.</h4>
+               <!-- <h4>Report it! But first things first.</h4>-->
                 <h4>Log in, please</h4>
             </div>
-            <form class="form" ng-controller="LoginCtrl">
+            <form class="form">
                 <div class="col-md-4">
                     <div class="form-group">
-                        <input type="text" ng-model="name_value" class="form-control" placeholder="username" required=""/>
+                        <input type="text" ng-model="login" class="form-control" placeholder="username" required=""/>
                     </div>
 
                     <div class="form-group">
-                        <input type="password" ng-model="pass_value" class="form-control" placeholder="password" required=""/>
+                        <input type="password" ng-model="pass" class="form-control" placeholder="password" required=""/>
                     </div>
 
                     <div class="form-group">
                         <button type="submit" ng-click="loginHandler()"  class="btn btn-success">Login</button>
-                        <span visibility="{{errVisible}}" class="text-danger">{{ error }}</span>
+                        <span ng-if="showError" class="text-danger">{{ error }}</span>
                     </div>
                 </div>
-
-                <div>
-                    <span>{{data}}</span>
-                </div>
             </form>
-
         </div>
     </div>
 

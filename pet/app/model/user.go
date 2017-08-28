@@ -20,12 +20,12 @@ const (
 )
 
 type User struct {
-	ObjectID  bson.ObjectId `bson:"_id"`
-	ID uint32 `db:"id" bson:"id,omitempty"` // use UserID() instead for consistency with database types
-	Login string
-	Name string
-	Password string
-	Groups []Group
+	ObjectID  bson.ObjectId `bson:"_id" json:"_id"`
+	ID uint32 `db:"id" json:"id,omitempty" bson:"id,omitempty"` // use UserID() instead for consistency with database types
+	Login string `json:"login"`
+	Name string `json:"name"`
+	Password string `json:"password"`
+	Groups []Group `json:"groups"`
 }
 
 // UserID

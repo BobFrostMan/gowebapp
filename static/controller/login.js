@@ -1,26 +1,16 @@
-var app = angular.module('loginModule', []);
 app.controller("LoginCtrl", loginController);
+console.log("Loaded controller: 'LoginCtrl'");
 
-function loginController($scope, $http){
+function loginController($scope, $http, userManagementService){
     $scope.errVisible = "hidden";
     $scope.loginHandler = login;
+    $scope.getUsers = getAllUsers;
 
     function login(){
-            $scope.name = $scope.name_value;
-            $scope.password = $scope.pass_value;
+        userManagementService.auth($scope, $http);
+    };
 
-            $http({
-                method : "GET",
-                url : "/users"
-            }).then(
-                function mySuccess(response) {
-                    $scope.data = response.data;
-                }, function myError(response) {
-                    $scope.status = response.statusText;
-                }
-            );
-
-            $scope.errVisible = "visible";
-            $scope.error = "You've entered " + $scope.name + " and " + $scope.password;
+    function getAllUsers(){
+        userManagementService.getUsers($scope, $http);
     };
 }
