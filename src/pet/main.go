@@ -3,13 +3,13 @@ package main
 import (
 	"log"
 	"runtime"
-	"gowebapp/pet/app/shared/config/jsonconfig"
+	"pet/app/shared/config/jsonconfig"
 	"encoding/json"
 	"os"
-	"gowebapp/pet/app/shared/server"
-	"gowebapp/pet/app/shared/database"
-	"gowebapp/pet/app/model"
-	"gowebapp/pet/app/route"
+	"pet/app/shared/server"
+	"pet/app/shared/database"
+	"pet/app/model"
+	"pet/app/route"
 )
 
 // *****************************************************************************

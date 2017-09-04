@@ -1,11 +1,11 @@
 package route
 
 import (
-	"gowebapp/pet/app/shared/server"
+	"pet/app/shared/server"
 	"net/http"
-	"gowebapp/pet/app/model"
+	"pet/app/model"
 	"log"
-	"gowebapp/pet/app/shared/passhash"
+	"pet/app/shared/passhash"
 	"strconv"
 	"encoding/json"
 )

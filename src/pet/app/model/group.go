@@ -2,7 +2,7 @@ package model
 
 import (
 	"gopkg.in/mgo.v2/bson"
-	"gowebapp/pet/app/shared/database"
+	"pet/app/shared/database"
 	"log"
 )
 

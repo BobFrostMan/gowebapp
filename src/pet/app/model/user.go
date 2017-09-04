@@ -1,10 +1,10 @@
 package model
 
 import (
-	"gowebapp/pet/app/shared/database"
+	"pet/app/shared/database"
 	"gopkg.in/mgo.v2/bson"
 	"log"
-	"gowebapp/pet/app/shared/passhash"
+	"pet/app/shared/passhash"
 )
 
 // Database tables, collections, fields etc.

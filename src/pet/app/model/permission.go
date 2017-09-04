@@ -2,8 +2,8 @@ package model
 
 import (
 	"gopkg.in/mgo.v2/bson"
-	"gowebapp/pet/app/shared/database"
 	"log"
+	"pet/app/shared/database"
 )
 
 // Entity constants

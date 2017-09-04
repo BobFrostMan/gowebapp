@@ -1,0 +1,13 @@
+# IntelliJ project files
+*.iml
+.idea/
+# auto-generated paths
+bin/
+pkg/
+out
+gen
+# gb vendor
+vendor/
+# specific dependencies for idea users
+/src/gopkg.in/
+/src/golang.org/
