@@ -7,7 +7,7 @@ pkg/
 out
 gen
 # gb vendor
-vendor/
+vendor/src/
 # specific dependencies for idea users
 /src/gopkg.in/
 /src/golang.org/
