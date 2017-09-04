@@ -14,6 +14,7 @@ import (
 // Registering handlers and binding them to according url
 func ConfigRoutes() {
 	http.Handle("/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	//TODO: remove unnecessary routes
 	http.HandleFunc("/users", users)
 	http.HandleFunc("/auth", auth)
 }

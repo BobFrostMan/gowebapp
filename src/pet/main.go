@@ -24,6 +24,9 @@ func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
+//TODO: on application init:
+//TODO: fetch all methods from db through dao
+//TODO: all subsequent db operations to be done via methods
 func main() {
 	// Parsing app configurations
 	filepath := "config"+string(os.PathSeparator)+"config.json"
