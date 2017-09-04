@@ -11,3 +11,4 @@ vendor/
 # specific dependencies for idea users
 /src/gopkg.in/
 /src/golang.org/
+/src/github.com/
