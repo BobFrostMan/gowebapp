@@ -46,6 +46,7 @@ function userService(){
             function(response){
                 $scope.data = response.data;
                 logSuccess(response);
+                window.location.href = "dashboard.html";
             },
             function(response){
                 logError(response);
