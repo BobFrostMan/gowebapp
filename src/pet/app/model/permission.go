@@ -2,8 +2,8 @@ package model
 
 import (
 	"gopkg.in/mgo.v2/bson"
-	"gowebapp/pet/app/shared/database"
 	"log"
+	"pet/app/shared/database"
 )
 
 // Entity constants
@@ -26,13 +26,13 @@ const (
 
 type Permission struct {
 	ObjectID bson.ObjectId `bson:"_id"`
-	ID       uint32 `db:"id" bson:"id,omitempty"` // use PermissionID() instead for consistency with database types
-	Name     string
-	Type     string                               // type string from Type constants
-	Value    string
-	Read     bool
-	Update   bool
-	Execute  bool
+	ID       uint32 `db:"id" json:"id,omitempty" bson:"id,omitempty"` // use PermissionID() instead for consistency with database types
+	Name     string `json:"name"`
+	Type     string `json:"type"`	// type string from Type constants
+	Value    string `json:"value"`
+	Read     bool `json:"read"`
+	Update   bool `json:"update"`
+	Execute  bool `json:"execute"`
 }
 
 // PermissionID

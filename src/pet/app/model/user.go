@@ -1,10 +1,10 @@
 package model
 
 import (
-	"gowebapp/pet/app/shared/database"
+	"pet/app/shared/database"
 	"gopkg.in/mgo.v2/bson"
 	"log"
-	"gowebapp/pet/app/shared/passhash"
+	"pet/app/shared/passhash"
 )
 
 // Database tables, collections, fields etc.
@@ -20,12 +20,12 @@ const (
 )
 
 type User struct {
-	ObjectID  bson.ObjectId `bson:"_id"`
-	ID uint32 `db:"id" bson:"id,omitempty"` // use UserID() instead for consistency with database types
-	Login string
-	Name string
-	Password string
-	Groups []Group
+	ObjectID  bson.ObjectId `bson:"_id" json:"_id"`
+	ID uint32 `db:"id" json:"id,omitempty" bson:"id,omitempty"` // use UserID() instead for consistency with database types
+	Login string `json:"login"`
+	Name string `json:"name"`
+	Password string `json:"password"`
+	Groups []Group `json:"groups"`
 }
 
 // UserID
@@ -107,5 +107,31 @@ func UserByLogin(login string) (*User, error) {
 	}
 
 	return &user, err
+}
+
+// UserByLogin
+// Returns user by given login and error
+func UserList() ([]User, error) {
+	var err error
+	var users []User
+	switch database.ReadConfig().Type {
+	case database.TypeMongoDB:
+		if database.CheckConnection() {
+			session := database.Mongo.Copy()
+			defer session.Close()
+			c := session.DB(database.ReadConfig().MongoDB.Database).C(UsersCollection)
+			err = c.Find(bson.M{}).All(&users)
+		} else {
+			err = NoDBConnection
+		}
+	default:
+		err = DBNotSelected
+	}
+
+	if err != nil{
+		// TODO: implement proper message for this case
+		log.Println(UserNotFound)
+	}
+	return users, err
 }
 

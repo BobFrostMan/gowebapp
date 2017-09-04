@@ -1,4 +1,5 @@
 package jsonconfig
+
 import (
 	"io"
 	"io/ioutil"

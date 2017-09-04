@@ -3,12 +3,13 @@ package main
 import (
 	"log"
 	"runtime"
-	"gowebapp/pet/app/shared/config/jsonconfig"
+	"pet/app/shared/config/jsonconfig"
 	"encoding/json"
 	"os"
-	"gowebapp/pet/app/shared/server"
-	"gowebapp/pet/app/shared/database"
-	"gowebapp/pet/app/model"
+	"pet/app/shared/server"
+	"pet/app/shared/database"
+	"pet/app/model"
+	"pet/app/route"
 )
 
 // *****************************************************************************
@@ -33,6 +34,12 @@ func main() {
 
 	// Create initial DB entities
 	createDefaultDBEntities()
+
+	// Configure API endpoint, register handlers
+	route.ConfigRoutes()
+
+	// Starting server using configuration from config
+	route.StartServer(&config.Server)
 }
 
 
