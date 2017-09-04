@@ -44,7 +44,7 @@ func CreateUserToken(userId string) (*Token, error) {
 		token = Token{
 			UserId:userId,
 			Value: value,
-			Expiration:time.Now() + time.Second * TokenExpirationDefaultInSec,
+			Expiration:time.Now().Add(time.Second * TokenExpirationDefaultInSec),
 		}
 		c.Insert(&token)
 	} else {
