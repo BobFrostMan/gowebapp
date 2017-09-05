@@ -39,6 +39,8 @@ func main() {
 	// Create initial DB entities
 	createDefaultDBEntities()
 
+	//Initializing API methods
+	initApiMethods()
 	// Configure API endpoint, register handlers
 	route.ConfigRoutes()
 
@@ -73,6 +75,13 @@ func (c *configuration) ParseJSON(b []byte) error {
 // createDefaultDBEntities
 // Creates first permissions, group and user and saves them to DB (if not created yet)
 func createDefaultDBEntities(){
+	if _, err :=model.MethodByName("auth"); err != nil{
+		err = model.CreateMethod("auth", []model.Parameter{
+			model.Parameter{ Name: "login", Required: true, Type: model.ParamTypeString},
+			model.Parameter{ Name: "pass", Required: true, Type: model.ParamTypeString },
+		}, []byte{});
+	}
+
 	initialPerms := getInitPermissions()
 	for _, p := range initialPerms {
 		if _, err := model.PermissionByName(p.Name); err != nil {
@@ -109,6 +118,14 @@ func createDefaultDBEntities(){
 		model.UserCreate(login, userName, password, groups)
 	}
 }
+// *****************************************************************************
+//  Initial context configuration
+// *****************************************************************************
+
+func initApiMethods()  {
+
+}
+
 
 // *****************************************************************************
 //  Initial database values

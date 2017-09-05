@@ -5,18 +5,16 @@ import (
 	"net/http"
 	"pet/app/model"
 	"log"
-	"pet/app/shared/passhash"
 	"strconv"
 	"encoding/json"
+	"pet/app/executor"
 )
 
 // ConfigRoutes
 // Registering handlers and binding them to according url
 func ConfigRoutes() {
 	http.Handle("/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	//TODO: remove unnecessary routes
-	http.HandleFunc("/users", users)
-	http.HandleFunc("/auth", auth)
+	http.HandleFunc("/", handle)
 }
 
 // StartServer
@@ -38,39 +36,24 @@ func users(w http.ResponseWriter, req *http.Request)  {
 	w.Write(jsonUsers)
 }
 
-// auth
-// Checks user existence by given login/pass
-func auth(w http.ResponseWriter, req *http.Request){
+func handle(w http.ResponseWriter, req *http.Request)  {
+	//Request parsing plus middleware requests logging
 	req.ParseForm()
-	login := req.Form.Get("login")
-	password := req.Form.Get("pass")
-	log.Printf("Attempt to login as '%s'", login)
-	user, err := model.UserByLogin(login)
-	if err != nil {
-		log.Printf("User '%s' not found", login)
-		response(http.StatusForbidden, "Credential data doesn't match to any user", w)
-		return
+	log.Printf("Processing %s request to %s", req.Method, req.RequestURI)
+	result, err := executor.Execute(req.Form)
+	if (err != nil){
+		log.Printf("[ERROR] Method %s %s executed with error: %s", req.Method, req.RequestURI, err.Error())
+		log.Printf("[ERROR] Server response: %s", result)
+	} else {
+		log.Printf("[INFO] Method %s %s successfully executed", req.Method, req.RequestURI)
+		log.Printf("[INFO] Server response: %s", result)
 	}
-	if err = passhash.CompareHashAndPassword(user.Password, password); err != nil{
-		log.Printf("User '%s' entered wrong password!", login)
-		response(http.StatusForbidden, "Credential data doesn't match to any user", w)
-		return
-	}
-	log.Printf("User '%s' successfully logged in", login)
-	// TODO: save session to db here
-	// TODO: set session id here
+	respond(&result, w)
 }
 
-// response
-// Returns response, with given code and message, using given response writer
-func response(status int, msg string, w http.ResponseWriter)  {
-	w.WriteHeader(status)
-	resp := ErrorResponse{Code: status, Message: msg}
-	response, _ := json.Marshal(resp)
+//write result to ResponseWriter, need to be tested
+func respond(res executor.Result, w http.ResponseWriter)  {
+	w.WriteHeader(res.Status)
+	response, res := json.Marshal(res)
 	w.Write(response)
-}
-
-type ErrorResponse struct{
-	Code int `json:"code"`
-	Message string `json:"message"`
 }
