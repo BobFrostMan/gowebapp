@@ -12,18 +12,18 @@ var fsm simple_fsm.Fsm
 //TODO: executor should take Request entity as input
 
 
-func initFsm()  {
+func initFsm() {
 	//TODO: implement when FromJson will be implemented or remove totally anf use loadApiMethods() instead
 	//fsm = simple_fsm.NewBuilder(nil).FromJson()
 }
 
 // loading all api methods from database to FSM
-func loadApiMethods()  {
+func LoadApiMethods() {
 	var err simple_fsm.FsmError
 	methods := model.GetAllMethods()
-	actions:= createActionMap(methods)
+	actions := createActionMap(methods)
 	fsm, err = simple_fsm.NewBuilder(actions).Fsm();
-	if (err != nil){
+	if (err != nil) {
 		log.Fatalf("Error occured during FSM initialization: %s", err.Error())
 	} else {
 		//TODO: Fill FSM with states somehow (but how? probably smart parsing of FSM object + fsm.AddStates())
@@ -47,7 +47,7 @@ func createSpecificAction(apiMethod *model.Method) simple_fsm.ActionFn {
 			res := auth(ctx.Str("login"), ctx.Str("pass"))
 			//No fsm -> no transitions -> nothing else to do with context
 			//TODO: should we remove values from ctx after method execution?
-			if (res.Status != 200){
+			if (res.Status != 200) {
 				return error("Authentification failed! " + res.Data)
 			}
 			return
@@ -66,15 +66,15 @@ func createGeneralAction(apiMethod *model.Method) simple_fsm.ActionFn {
 	}
 }
 
-func createActionMap(methods []model.Method) map[string]simple_fsm.ActionFn{
+func createActionMap(methods []model.Method) map[string]simple_fsm.ActionFn {
 	actions := make(map[string]simple_fsm.ActionFn)
-	for _, method := range methods{
+	for _, method := range methods {
 		actions[method.Name] = newAction(method)
 	}
 	return actions
 }
 
-func getStateInfos(apiMethod *model.Method) []simple_fsm.StateInfo  {
+func getStateInfos(apiMethod *model.Method) []simple_fsm.StateInfo {
 	//TODO: somehow henerate state infos to add to FSM
 	return nil
 }
@@ -98,11 +98,11 @@ func execute(actions map[string]simple_fsm.ActionFn) (*Result, error) {
 	var result interface{}
 	var err simple_fsm.FsmError
 	fsm, err := simple_fsm.NewBuilder(actions).Fsm()
-	if err != nil{
+	if err != nil {
 		log.Println("Failed to construct executive state machine: " + err.Error())
 	} else {
 		result, err = fsm.Run()
-		if err != nil{
+		if err != nil {
 			log.Println("Error occured during flow execution: " + err.Error())
 		}
 	}
@@ -112,7 +112,7 @@ func execute(actions map[string]simple_fsm.ActionFn) (*Result, error) {
 func Execute(form url.Values) (*Result, error) {
 	//TODO: locate method - else return error
 	//TODO: put all parameter values somewhere (to some FSM context or how can it be done?)
-	//TODO: validate paramers (with FSM.validate() ?)
+	//TODO: validate parameters according to method parameters restriction (somewhere from FSM context?)
 	//TODO: validate permissions for method, by token
 	//TODO: if fsm isn't running, run fsm (with parsed params)
 	//TODO: return general response with error or data inside
