@@ -27,6 +27,7 @@ func init() {
 //TODO: on application init:
 //TODO: fetch all methods from db through dao
 //TODO: all subsequent db operations to be done via methods
+//TODO: add them to context
 func main() {
 	// Parsing app configurations
 	filepath := "config"+string(os.PathSeparator)+"config.json"

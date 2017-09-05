@@ -19,7 +19,8 @@ To build project you should have GB package manager installed.
 ```
 go get github.com/constabulary/gb/...
 ```
-Also make sure that your $GOPATH/bin directory added to $PATH variable
+Also make sure that your $GOPATH/bin directory added to $PATH variable.
+
 2. Download all project dependencies:
 ```
 gb vendor update -all
