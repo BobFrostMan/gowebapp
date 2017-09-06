@@ -103,7 +103,7 @@ func validateParams(apiUrl string, form url.Values) (bool, error) {
 }
 
 func checkPermissions(token string) (bool, error) {
-	//TODO: validate permissions including token
+	//TODO: validate permissions for method, by token
 	return false, nil
 }
 
@@ -129,8 +129,7 @@ func executeMethod(method model.Method) (*Result, error) {
 func Execute(url string, form url.Values) (result *Result, err error) {
 	var result Result
 	var err error
-	//TODO: locate method - else return error
-	//TODO: validate parameters according to method parameters restriction (somewhere from FSM context?)
+
 	if ok, err := validateParams(url, form); !ok || err != nil {
 		result = Result{
 			Status: http.StatusBadRequest,
@@ -139,7 +138,6 @@ func Execute(url string, form url.Values) (result *Result, err error) {
 		return
 	}
 
-	//TODO: validate permissions for method, by token
 	if ok, err := checkPermissions(form.Get("token")); !ok || err != nil{
 		result = Result{
 			Status: http.StatusForbidden,
@@ -149,6 +147,7 @@ func Execute(url string, form url.Values) (result *Result, err error) {
 	}
 
 	//TODO: put all parameter values somewhere (to some FSM context or how can it be done?)
+	//feedFSMWithArguments(form)
 
 	//TODO: if fsm isn't running, run fsm (with parsed params somehow)
 	result, err = executeMethod(nil)
@@ -158,6 +157,5 @@ func Execute(url string, form url.Values) (result *Result, err error) {
 			Data: err.Error(),
 		}
 	}
-	//TODO: return general response with error or data inside
 	return &result, err
 }

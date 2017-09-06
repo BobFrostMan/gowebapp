@@ -26,10 +26,6 @@ func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
-//TODO: on application init:
-//TODO: fetch all methods from db through dao
-//TODO: all subsequent db operations to be done via methods
-//TODO: add them to context
 func main() {
 	// Parsing app configurations
 	filepath := "config" + string(os.PathSeparator) + "config.json"
@@ -41,6 +37,9 @@ func main() {
 	// Create initial DB entities
 	createDefaultDBEntities()
 
+	//TODO: on application init:
+	//TODO: fetch all methods from db through dao
+	//TODO: all subsequent db operations to be done via methods (whats that?)
 	//Loading API methods to App context
 	loadApiMethodsToCtx()
 
