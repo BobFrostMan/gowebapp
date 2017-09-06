@@ -40,7 +40,7 @@ func handle(w http.ResponseWriter, req *http.Request)  {
 	//Request parsing plus middleware requests logging
 	req.ParseForm()
 	log.Printf("Processing %s request to %s", req.Method, req.RequestURI)
-	result, err := executor.Execute(req.Form)
+	result, err := executor.Execute(req.URL.Path, req.Form)
 	if (err != nil){
 		log.Printf("[ERROR] Method %s %s executed with error: %s", req.Method, req.RequestURI, err.Error())
 		log.Printf("[ERROR] Server response: %s", result)

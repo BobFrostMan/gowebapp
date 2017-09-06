@@ -11,6 +11,7 @@ import (
 	"pet/app/model"
 	"pet/app/route"
 	"pet/app/executor"
+	"pet/app/shared/context"
 )
 
 // *****************************************************************************
@@ -40,8 +41,12 @@ func main() {
 	// Create initial DB entities
 	createDefaultDBEntities()
 
-	//Initializing API methods
-	initApiMethods()
+	//Loading API methods to App context
+	loadApiMethodsToCtx()
+
+	//Loading api methods to FSM
+	loadApiMethodsToFsm()
+
 	// Configure API endpoint, register handlers
 	route.ConfigRoutes()
 
@@ -123,8 +128,16 @@ func createDefaultDBEntities() {
 //  Initial context configuration
 // *****************************************************************************
 
-func initApiMethods() {
-	executor.LoadApiMethods()
+func loadApiMethodsToFsm() {
+	executor.LoadFSM(context.AppContext.GetAllMethods())
+}
+
+func loadApiMethodsToCtx() {
+	context.AppContext.InitContext()
+	methods := *model.GetAllMethods()
+	for _, method := range methods{
+		context.AppContext.Put(method.Name, method)
+	}
 }
 
 // *****************************************************************************

@@ -5,28 +5,25 @@ import (
 	"log"
 	"pet/app/model"
 	"net/url"
+	"pet/app/shared/context"
+	"strings"
+	"fmt"
+	"reflect"
+	"net/http"
 )
 
-var fsm simple_fsm.Fsm
 
 //TODO: executor should take Request entity as input
 
-
-func initFsm() {
-	//TODO: implement when FromJson will be implemented or remove totally anf use loadApiMethods() instead
-	//fsm = simple_fsm.NewBuilder(nil).FromJson()
-}
-
-// loading all api methods from database to FSM
-func LoadApiMethods() {
-	var err simple_fsm.FsmError
-	methods := model.GetAllMethods()
+// loading all api methods to FSM from application context
+func LoadFSM(methods []model.Method) {
 	actions := createActionMap(methods)
-	fsm, err = simple_fsm.NewBuilder(actions).Fsm();
+	fsm, err := simple_fsm.NewBuilder(actions).Fsm();
 	if (err != nil) {
 		log.Fatalf("Error occured during FSM initialization: %s", err.Error())
 	} else {
 		//TODO: Fill FSM with states somehow (but how? probably smart parsing of FSM object + fsm.AddStates())
+		context.AppContext.Put("fsm", fsm)
 	}
 }
 
@@ -46,8 +43,8 @@ func createSpecificAction(apiMethod *model.Method) simple_fsm.ActionFn {
 		return func(ctx simple_fsm.ContextOperator) error {
 			res := auth(ctx.Str("login"), ctx.Str("pass"))
 			//No fsm -> no transitions -> nothing else to do with context
-			//TODO: should we remove values from ctx after method execution?
-			if (res.Status != 200) {
+			//TODO: should we remove values from FSM ctx after method execution?
+			if (res.Status != http.StatusOK) {
 				return error("Authentification failed! " + res.Data)
 			}
 			return
@@ -75,46 +72,92 @@ func createActionMap(methods []model.Method) map[string]simple_fsm.ActionFn {
 }
 
 func getStateInfos(apiMethod *model.Method) []simple_fsm.StateInfo {
-	//TODO: somehow henerate state infos to add to FSM
+	//TODO: somehow generate state infos to add to FSM
 	return nil
 }
 
-func validateParams() (bool, error) {
-	//TODO: validate parameters (no db access)
-	//TODO: validate FSM structure using FSM.validate()
-	return false, nil
+func validateParams(apiUrl string, form url.Values) (bool, error) {
+	// method existence check
+	methodName := strings.Split(apiUrl, "/")[0]
+	method := context.AppContext.GetMethod(methodName)
+	if method == nil{
+		msg := fmt.Sprintf("Method '%s' was not recognized by executor", methodName)
+		log.Printf(msg)
+		return false, error.Error(msg)
+	}
+
+	// param types checks
+	for _, param := range method.Parameters{
+		value := form.Get(param.Name)
+		if param.Required && value != "" {
+			//TODO: it's strong feeling that actual type will always be 'string'
+			actualType := reflect.TypeOf(value).String()
+			if actualType != param.Type {
+				msg := fmt.Sprintf("Wrong argument '%s' for method '%s'. Expected type '%s', but found '%s'", param.Name, method.Name, param.Type, actualType)
+				fmt.Printf(msg)
+				return false, error.Error(msg)
+			}
+		}
+	}
+	return true, nil
 }
 
-func checkPermissions() (bool, error) {
+func checkPermissions(token string) (bool, error) {
 	//TODO: validate permissions including token
 	return false, nil
 }
 
-func execute(actions map[string]simple_fsm.ActionFn) (*Result, error) {
-	//TODO: execute method return result object
-	//TODO: implement interaction with ContextOperator during fsm execution
-	//TODO: implement fsm builder
-	//TODO: implement fsm execution
-	var result interface{}
-	var err simple_fsm.FsmError
-	fsm, err := simple_fsm.NewBuilder(actions).Fsm()
-	if err != nil {
-		log.Println("Failed to construct executive state machine: " + err.Error())
+//TODO: have no idea how to run exact method on fsm
+func executeMethod(method model.Method) (*Result, error) {
+	var err error
+	var result Result
+	fsm := context.AppContext.GetFsm("fsm")
+	//TODO: feed fsm with parameters from request somehow
+	if fsm != nil {
+		log.Println("FSM wasn't initialized yet!")
+		err = "FSM wasn't initialized yet! Please init it with LoadFSM method first"
+		return result, err
 	} else {
-		result, err = fsm.Run()
-		if err != nil {
-			log.Println("Error occured during flow execution: " + err.Error())
+		execRes, er := fsm.Run()
+		if er != nil {
+			log.Println("Error occured during flow execution: " + er.Error())
 		}
+		return execRes.(*Result), er
 	}
-	return result.(*Result), err
 }
 
-func Execute(form url.Values) (*Result, error) {
+func Execute(url string, form url.Values) (result *Result, err error) {
+	var result Result
+	var err error
 	//TODO: locate method - else return error
-	//TODO: put all parameter values somewhere (to some FSM context or how can it be done?)
 	//TODO: validate parameters according to method parameters restriction (somewhere from FSM context?)
+	if ok, err := validateParams(url, form); !ok || err != nil {
+		result = Result{
+			Status: http.StatusBadRequest,
+			Data: err.Error(),
+		}
+		return
+	}
+
 	//TODO: validate permissions for method, by token
-	//TODO: if fsm isn't running, run fsm (with parsed params)
+	if ok, err := checkPermissions(form.Get("token")); !ok || err != nil{
+		result = Result{
+			Status: http.StatusForbidden,
+			Data: err.Error(),
+		}
+		return
+	}
+
+	//TODO: put all parameter values somewhere (to some FSM context or how can it be done?)
+
+	//TODO: if fsm isn't running, run fsm (with parsed params somehow)
+	result, err = executeMethod(nil)
+	if err != nil {
+		result = Result{
+			Status: http.StatusInternalServerError,
+			Data: err.Error(),
+		}
+	}
 	//TODO: return general response with error or data inside
-	return Result{}, nil
+	return &result, err
 }
