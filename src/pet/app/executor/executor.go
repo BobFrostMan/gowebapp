@@ -123,7 +123,7 @@ func authWithFSM(login string, pass string) *simple_fsm.Fsm {
 				rawUser, _ := ctx.Raw("user")
 				userObj := rawUser.(*model.User)
 				log.Printf("User pass ok, creating token for %v", userObj)
-				token, err := model.TokenSet(string(userObj.ObjectID))
+				token, err := model.TokenSet(userObj.ObjectID.Hex())
 				if err != nil {
 					log.Printf("Token wasn't created for user'%s' entered wrong password!", userObj.Name)
 					ctx.PutResult(Result{

@@ -23,9 +23,9 @@ const (
 )
 
 type Token struct {
-	ID         bson.ObjectId `json:"id",bson:"_id"`
+	ObjectID bson.ObjectId `bson:"_id" json:"_id"`
 	Value string `json:"value"`
-	UserId     string        `json:"userId"`
+	UserId     string        `bson:"userId" json:"userId"`
 	Expiration time.Time        `json:"expiration"`
 }
 
@@ -43,7 +43,8 @@ func TokenCreate(userId string) (*Token, error) {
 		c := session.DB(database.ReadConfig().MongoDB.Database).C(TokensCollection)
 		value = uuid.NewV4().String()
 		token = Token{
-			UserId:userId,
+			ObjectID: bson.NewObjectId(),
+			UserId: userId,
 			Value: value,
 			Expiration:time.Now().Add(time.Second * TokenExpirationDefaultInSec),
 		}
@@ -101,7 +102,7 @@ func TokenUpdate(userId string) (*Token, error) {
 		c.Find(bson.M{"userId": userId}).Apply(mgo.Change{
 			Update: bson.M{
 				"$set": bson.M{
-					"token": uuid.NewV4().String(),
+					"value": uuid.NewV4().String(),
 				},
 			},
 			ReturnNew: true,

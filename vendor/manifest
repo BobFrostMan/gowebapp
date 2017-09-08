@@ -10,7 +10,7 @@
 		{
 			"importpath": "github.com/xenzh/gofsm.git",
 			"repository": "https://github.com/xenzh/gofsm.git",
-			"revision": "48a2599a94ec442744dbf5e1bec041f82ab1f94f",
+			"revision": "81b5040590e69275dec722a1e55e61cb11b74157",
 			"branch": "master"
 		},
 		{
