@@ -6,6 +6,7 @@ import (
 	"pet/app/shared/database"
 	"log"
 	"github.com/satori/go.uuid"
+	"gopkg.in/mgo.v2"
 )
 
 // Database tables, collections, fields etc.
@@ -30,7 +31,7 @@ type Token struct {
 
 // CreateUserToken
 // Generates temporary access token for specified userId
-func CreateUserToken(userId string) (*Token, error) {
+func TokenCreate(userId string) (*Token, error) {
 	var err error
 	var value string
 	var token Token
@@ -59,3 +60,77 @@ func CreateUserToken(userId string) (*Token, error) {
 
 	return &token, err
 }
+
+// FindUserToken
+// Finds token by userId
+func TokenByUserId(userId string) (*Token, error) {
+	var err error
+	var value string
+	var token Token
+
+	if database.CheckConnection() {
+		session := database.Mongo.Copy()
+		defer session.Close()
+
+		c := session.DB(database.ReadConfig().MongoDB.Database).C(TokensCollection)
+		c.Find(bson.M{"userId" : userId}).One(&token)
+	} else {
+		err = NoDBConnection
+	}
+
+	if err != nil {
+		log.Printf(TokenNotCreated, userId)
+	} else {
+		log.Printf(TokenCreated, value, userId)
+	}
+
+	return &token, err
+}
+
+// TokenUpdate
+// Updates existing user token with new random value
+func TokenUpdate(userId string) (*Token, error) {
+	var err error
+	var value string
+	var token Token
+
+	if database.CheckConnection() {
+		session := database.Mongo.Copy()
+		defer session.Close()
+
+		c := session.DB(database.ReadConfig().MongoDB.Database).C(TokensCollection)
+		value = uuid.NewV4().String()
+		//c.Update(bson.M{"userId": userId}, bson.M{"token", uuid.NewV4().String()})
+		c.Find(bson.M{"userId": userId}).Apply(mgo.Change{
+			Update: bson.M{
+				"$set": bson.M{
+					"token": uuid.NewV4().String(),
+				},
+			},
+			ReturnNew: true,
+		}, &token)
+
+	} else {
+		err = NoDBConnection
+	}
+
+	if err != nil {
+		log.Printf(TokenNotCreated, userId)
+	} else {
+		log.Printf(TokenCreated, value, userId)
+	}
+
+	return &token, err
+}
+
+func TokenSet(userId string) (*Token, error){
+	if existingToken, err := TokenByUserId(userId); err == nil && existingToken.Value != "" {
+		return TokenUpdate(userId)
+	} else {
+		return TokenCreate(userId)
+	}
+}
+
+
+
+

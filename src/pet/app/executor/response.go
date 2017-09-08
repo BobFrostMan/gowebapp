@@ -1,6 +1,6 @@
 package executor
 
 type Result struct {
-	Status string
-	Body string
+	Status int
+	Data   string
 }
