@@ -25,8 +25,6 @@ const (
 	MethodCreated = "Method '%s' was successfully created"
 )
 
-type ParamType string
-
 type Method struct {
 	ObjectID bson.ObjectId `bson:"_id"`
 	Name string `json:"name"`
@@ -37,7 +35,12 @@ type Method struct {
 type Parameter struct {
 	Name string `json:"name"`
 	Required bool `json:"required"`
-	Type ParamType `json:"type"`
+	Type string `json:"type"`
+}
+
+//TODO: guess that can be done in another way
+func (m *Method)IsEmpty() bool {
+	return m.Name == "" && len(m.Parameters) == 0
 }
 
 // CreateMethod

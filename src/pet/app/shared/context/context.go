@@ -7,6 +7,8 @@ import (
 
 const methods = "methods"
 
+var GlobalCtx AppContext
+
 type AppContext struct {
 	ctx map[string]interface{}
 }
@@ -28,7 +30,7 @@ func (c *AppContext) Put(key string, value interface{}) {
 }
 
 func (c *AppContext) Get(key string) (interface{}) {
-	return &c.ctx[key]
+	return c.ctx[key]
 }
 
 func (c *AppContext) GetFsm(key string) (simple_fsm.Fsm) {
@@ -36,12 +38,13 @@ func (c *AppContext) GetFsm(key string) (simple_fsm.Fsm) {
 }
 
 func (c *AppContext) GetMethod(name string) (model.Method) {
+	var empty model.Method
 	for methodName, method := range c.ctx[methods].(map[string]model.Method){
 		if (name == methodName){
 			return method
 		}
 	}
-	return nil
+	return empty
 }
 
 func (c *AppContext) GetString(key string) (string) {
@@ -56,8 +59,8 @@ func (c *AppContext) GetInt(key string) (int) {
 	return c.ctx[key].(int)
 }
 
-func (c *AppContext) GetAllMethodsMap (map[string]model.Method) {
-	return c.ctx[methods]
+func (c *AppContext) GetAllMethodsMap() (map[string]model.Method) {
+	return c.ctx[methods].(map[string]model.Method)
 }
 
 func (c *AppContext) GetAllMethods() ([]model.Method) {

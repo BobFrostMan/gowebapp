@@ -34,7 +34,7 @@ func Connect(d Info) {
 
 	// Store the config
 	databases = d
-	log.Printf("Selected database type is %s", d.Type)
+	log.Printf("[INFO] Selected database type is %s", d.Type)
 	switch d.Type {
 
 	case TypeMongoDB:

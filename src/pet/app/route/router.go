@@ -13,15 +13,16 @@ import (
 // ConfigRoutes
 // Registering handlers and binding them to according url
 func ConfigRoutes() {
-	http.Handle("/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	http.HandleFunc("/", handle)
+	http.Handle("/", http.StripPrefix("/static/", http.FileServer(http.Dir("src/static"))))
+	http.Handle("/favicon.ico", http.NotFoundHandler())
+	http.HandleFunc("/api/", handle)
 }
 
 // StartServer
 // Starts server with instance parameters
 func StartServer(server *server.Server)  {
 	port := strconv.Itoa(server.Port)
-	log.Printf("Starting server on port :%s", port)
+	log.Printf("[INFO] Starting server on port :%s", port)
 	log.Fatal(http.ListenAndServe(":" + port, nil))
 }
 
@@ -31,7 +32,7 @@ func users(w http.ResponseWriter, req *http.Request)  {
 	users, _ := model.UserList()
 	jsonUsers, err := json.Marshal(&users)
 	if err != nil{
-		log.Printf("Failed to parse users data:\n%s", jsonUsers)
+		log.Printf("[ERROR] Failed to parse users data:\n%s", jsonUsers)
 	}
 	w.Write(jsonUsers)
 }
@@ -39,21 +40,24 @@ func users(w http.ResponseWriter, req *http.Request)  {
 func handle(w http.ResponseWriter, req *http.Request)  {
 	//Request parsing plus middleware requests logging
 	req.ParseForm()
-	log.Printf("Processing %s request to %s", req.Method, req.RequestURI)
+	log.Printf("[INFO] Processing %s request to %s", req.Method, req.RequestURI)
 	result, err := executor.Execute(req.URL.Path, req.Form)
 	if (err != nil){
 		log.Printf("[ERROR] Method %s %s executed with error: %s", req.Method, req.RequestURI, err.Error())
-		log.Printf("[ERROR] Server response: %s", result)
+		log.Printf("[ERROR] Server response: %v", result)
 	} else {
-		log.Printf("[INFO] Method %s %s successfully executed", req.Method, req.RequestURI)
-		log.Printf("[INFO] Server response: %s", result)
+		log.Printf("[ERROR] Method %s %s successfully executed", req.Method, req.RequestURI)
+		log.Printf("[INFO] Server response: %v", result)
 	}
-	respond(&result, w)
+	respond(*result, w)
 }
 
 //write result to ResponseWriter, need to be tested
 func respond(res executor.Result, w http.ResponseWriter)  {
 	w.WriteHeader(res.Status)
-	response, res := json.Marshal(res)
+	response, err := json.Marshal(res)
+	if err != nil{
+		log.Println(err.Error())
+	}
 	w.Write(response)
 }

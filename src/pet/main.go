@@ -40,6 +40,8 @@ func main() {
 	//TODO: on application init:
 	//TODO: fetch all methods from db through dao
 	//TODO: all subsequent db operations to be done via methods (whats that?)
+	//Init global application context
+	context.GlobalCtx.InitContext()
 	//Loading API methods to App context
 	loadApiMethodsToCtx()
 
@@ -82,9 +84,10 @@ func (c *configuration) ParseJSON(b []byte) error {
 func createDefaultDBEntities() {
 	if _, err := model.MethodByName("auth"); err != nil {
 		err = model.CreateMethod("auth", []model.Parameter{
-			model.Parameter{Name: "login", Required: true, Type: model.ParamTypeString},
-			model.Parameter{Name: "pass", Required: true, Type: model.ParamTypeString },
-		}, []byte{});
+			{ Name: "login", Required: true, Type: model.ParamTypeString },
+			{ Name: "pass", Required: true, Type: model.ParamTypeString },
+		}, []byte{
+		});
 	}
 
 	initialPerms := getInitPermissions()
@@ -128,14 +131,13 @@ func createDefaultDBEntities() {
 // *****************************************************************************
 
 func loadApiMethodsToFsm() {
-	executor.LoadFSM(context.AppContext.GetAllMethods())
+	executor.LoadFSM(context.GlobalCtx.GetAllMethods())
 }
 
 func loadApiMethodsToCtx() {
-	context.AppContext.InitContext()
 	methods := *model.GetAllMethods()
-	for _, method := range methods{
-		context.AppContext.Put(method.Name, method)
+	for _, method := range methods {
+		context.GlobalCtx.Put(method.Name, method)
 	}
 }
 
