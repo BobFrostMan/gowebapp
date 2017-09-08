@@ -17,7 +17,7 @@ const (
 
 // Messages patterns
 const (
-	TokenNotFound = "Token '%s' wasn't found"
+	TokenNotFound = "Token wasn't found for user '%s'"
 	TokenNotCreated = "Token '%s' wasn't created"
 	TokenCreated = "Token '%s' was successfully created for user '%s'"
 )
@@ -65,7 +65,6 @@ func TokenCreate(userId string) (*Token, error) {
 // Finds token by userId
 func TokenByUserId(userId string) (*Token, error) {
 	var err error
-	var value string
 	var token Token
 
 	if database.CheckConnection() {
@@ -79,9 +78,7 @@ func TokenByUserId(userId string) (*Token, error) {
 	}
 
 	if err != nil {
-		log.Printf(TokenNotCreated, userId)
-	} else {
-		log.Printf(TokenCreated, value, userId)
+		log.Printf(TokenNotFound, userId)
 	}
 
 	return &token, err

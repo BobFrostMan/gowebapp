@@ -43,17 +43,17 @@ func handle(w http.ResponseWriter, req *http.Request)  {
 	log.Printf("[INFO] Processing %s request to %s", req.Method, req.RequestURI)
 	result, err := executor.Execute(req.URL.Path, req.Form)
 	if (err != nil){
-		log.Printf("[ERROR] Method %s %s executed with error: %s", req.Method, req.RequestURI, err.Error())
+		log.Printf("[ERROR] Method %s %s executed with error: %v", req.Method, req.RequestURI, err)
 		log.Printf("[ERROR] Server response: %v", result)
 	} else {
 		log.Printf("[ERROR] Method %s %s successfully executed", req.Method, req.RequestURI)
 		log.Printf("[INFO] Server response: %v", result)
 	}
-	respond(*result, w)
+	respond(&result, w)
 }
 
 //write result to ResponseWriter, need to be tested
-func respond(res executor.Result, w http.ResponseWriter)  {
+func respond(res *executor.Result, w http.ResponseWriter)  {
 	w.WriteHeader(res.Status)
 	response, err := json.Marshal(res)
 	if err != nil{
