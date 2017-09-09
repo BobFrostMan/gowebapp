@@ -46,7 +46,7 @@ func handle(w http.ResponseWriter, req *http.Request)  {
 		log.Printf("[ERROR] Method %s %s executed with error: %v", req.Method, req.RequestURI, err)
 		log.Printf("[ERROR] Server response: %v", result)
 	} else {
-		log.Printf("[ERROR] Method %s %s successfully executed", req.Method, req.RequestURI)
+		log.Printf("[INFO] Method %s %s successfully executed", req.Method, req.RequestURI)
 		log.Printf("[INFO] Server response: %v", result)
 	}
 	respond(&result, w)
@@ -55,7 +55,7 @@ func handle(w http.ResponseWriter, req *http.Request)  {
 //write result to ResponseWriter, need to be tested
 func respond(res *executor.Result, w http.ResponseWriter)  {
 	w.WriteHeader(res.Status)
-	response, err := json.Marshal(res)
+	response, err := json.MarshalIndent(res, "", "    ")
 	if err != nil{
 		log.Println(err.Error())
 	}
