@@ -29,13 +29,37 @@ type Method struct {
 	ObjectID bson.ObjectId `bson:"_id"`
 	Name string `json:"name"`
 	Parameters []Parameter `json:"parameters"`
-	Fsm interface{} `json:"fsm"`
+	Fsm JsonRoot `json:"fsm"`
 }
 
 type Parameter struct {
 	Name string `json:"name"`
 	Required bool `json:"required"`
 	Type string `json:"type"`
+}
+
+type JsonRoot map[string]JsonStates
+
+type JsonStates map[string]JsonState
+
+type JsonGuard struct {
+	Type  string      `json:"type"`
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
+}
+
+type JsonTransition struct {
+	ToState string    `json:"to"`
+	Guard   JsonGuard `json:"guard"`
+	Action  string    `json:"action"`
+	Target string `json:"target"`
+	Type string `json:"type"`
+}
+type JsonState struct {
+	Start         bool                      `json:"start"`
+	StartSubState string                    `json:"startsub"`
+	Parent        string                    `json:"parent"`
+	Transitions   map[string]JsonTransition `json:"transitions"`
 }
 
 //TODO: guess that can be done in another way
