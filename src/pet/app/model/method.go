@@ -76,7 +76,6 @@ func CreateMethod(name string, parameters []Parameter, fsm interface{}) error {
 	return err
 }
 
-
 // PermissionByName
 // Returns permission by given name and error
 func MethodByName(name string) (*Method, error) {

@@ -1,6 +1,6 @@
 package executor
 
 type Result struct {
-	Status int
-	Data   interface{}
+	Status int `json:"status"`
+	Data   interface{} `json:"data"`
 }

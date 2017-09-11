@@ -17,7 +17,8 @@ const (
 
 // Messages patterns
 const (
-	TokenNotFound = "Token wasn't found for user '%s'"
+	TokenNotFoundForUser = "Token wasn't found for user '%s'"
+	TokenNotFound = "Token '%s' wasn't found"
 	TokenNotCreated = "Token '%s' wasn't created"
 	TokenCreated = "Token '%s' was successfully created for user '%s'"
 )
@@ -46,7 +47,7 @@ func TokenCreate(userId string) (*Token, error) {
 			ObjectID: bson.NewObjectId(),
 			UserId: userId,
 			Value: value,
-			Expiration:time.Now().Add(time.Second * TokenExpirationDefaultInSec),
+			Expiration: time.Now().Add(time.Second * TokenExpirationDefaultInSec),
 		}
 		c.Insert(&token)
 	} else {
@@ -62,7 +63,30 @@ func TokenCreate(userId string) (*Token, error) {
 	return &token, err
 }
 
-// FindUserToken
+// TokenByValue
+// Finds token by given value
+func TokenByValue(value string) (*Token, error) {
+	var err error
+	var token Token
+
+	if database.CheckConnection() {
+		session := database.Mongo.Copy()
+		defer session.Close()
+
+		c := session.DB(database.ReadConfig().MongoDB.Database).C(TokensCollection)
+		c.Find(bson.M{"value" : value}).One(&token)
+	} else {
+		err = NoDBConnection
+	}
+
+	if err != nil {
+		log.Printf(TokenNotFound, value)
+	}
+
+	return &token, err
+}
+
+// TokenByUserId
 // Finds token by userId
 func TokenByUserId(userId string) (*Token, error) {
 	var err error
@@ -79,7 +103,7 @@ func TokenByUserId(userId string) (*Token, error) {
 	}
 
 	if err != nil {
-		log.Printf(TokenNotFound, userId)
+		log.Printf(TokenNotFoundForUser, userId)
 	}
 
 	return &token, err
@@ -98,11 +122,11 @@ func TokenUpdate(userId string) (*Token, error) {
 
 		c := session.DB(database.ReadConfig().MongoDB.Database).C(TokensCollection)
 		value = uuid.NewV4().String()
-		//c.Update(bson.M{"userId": userId}, bson.M{"token", uuid.NewV4().String()})
 		c.Find(bson.M{"userId": userId}).Apply(mgo.Change{
 			Update: bson.M{
 				"$set": bson.M{
 					"value": uuid.NewV4().String(),
+					"expiration": time.Now().Add(time.Second * TokenExpirationDefaultInSec),
 				},
 			},
 			ReturnNew: true,
@@ -121,6 +145,8 @@ func TokenUpdate(userId string) (*Token, error) {
 	return &token, err
 }
 
+// TokenSet
+// Creates new token for user, or update existing value + expiration
 func TokenSet(userId string) (*Token, error){
 	if existingToken, err := TokenByUserId(userId); err == nil && existingToken.Value != "" {
 		return TokenUpdate(userId)
@@ -129,6 +155,12 @@ func TokenSet(userId string) (*Token, error){
 	}
 }
 
-
-
-
+// CheckToken
+// Checks if token exists expiration
+func CheckToken(value string) (bool, error) {
+	if token, err := TokenByValue(value);err != nil {
+		return false, err
+	} else {
+		return time.Now().After(token.Expiration), nil
+	}
+}

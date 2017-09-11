@@ -10,8 +10,6 @@ import (
 	"pet/app/shared/database"
 	"pet/app/model"
 	"pet/app/route"
-	"pet/app/executor"
-	"pet/app/shared/context"
 )
 
 // *****************************************************************************
@@ -37,19 +35,8 @@ func main() {
 	// Create initial DB entities
 	createDefaultDBEntities()
 
-	//TODO: on application init:
-	//TODO: fetch all methods from db through dao
-	//TODO: all subsequent db operations to be done via methods (whats that?)
-	//Init global application context
-	context.GlobalCtx.InitContext()
-	//Loading API methods to App context
-	loadApiMethodsToCtx()
-
-	//Loading api methods to FSM
-	loadApiMethodsToFsm()
-
 	// Configure API endpoint, register handlers
-	route.ConfigRoutes()
+	route.ConfigRoutes(model.GetAllMethods())
 
 	// Starting server using configuration from config
 	route.StartServer(&config.Server)
@@ -124,20 +111,6 @@ func createDefaultDBEntities() {
 	userName := "The Bandit"
 	if _, err := model.UserByLogin(login); err != nil {
 		model.UserCreate(login, userName, password, groups)
-	}
-}
-// *****************************************************************************
-//  Initial context configuration
-// *****************************************************************************
-
-func loadApiMethodsToFsm() {
-	executor.LoadFSM(context.GlobalCtx.GetAllMethods())
-}
-
-func loadApiMethodsToCtx() {
-	methods := *model.GetAllMethods()
-	for _, method := range methods {
-		context.GlobalCtx.Put(method.Name, method)
 	}
 }
 
