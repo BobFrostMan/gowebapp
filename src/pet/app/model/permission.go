@@ -24,6 +24,8 @@ const (
 	PermissionCreated = "Permission '%s' was successfully created"
 )
 
+//TODO: implement Value as Values
+//TODO: create simple user permission and permission groups
 type Permission struct {
 	ObjectID bson.ObjectId `bson:"_id"`
 	ID       uint32 `db:"id" json:"id,omitempty" bson:"id,omitempty"` // use PermissionID() instead for consistency with database types

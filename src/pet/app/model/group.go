@@ -8,7 +8,7 @@ import (
 
 // Database tables, collections, fields etc.
 const (
-	GroupsCollection  = "PermissionGroups"
+	GroupsCollection = "PermissionGroups"
 )
 
 // Messages patterns
@@ -19,23 +19,10 @@ const (
 )
 
 type Group struct {
-	ObjectID  bson.ObjectId `bson:"_id"`
-	ID uint32 `db:"id" json:"id,omitempty" bson:"id,omitempty"` // use GroupID() instead for consistency with database types
-	Name string `bson:"name" json:"name"`
+	ObjectID    bson.ObjectId `bson:"_id"`
+	ID          uint32 `db:"id" json:"id,omitempty" bson:"id,omitempty"` // use GroupID() instead for consistency with database types
+	Name        string `bson:"name" json:"name"`
 	Permissions []Permission `bson:"permissions" json:"permissions"`
-}
-
-// GroupID
-// GroupID returns the user id
-func (p *Group) GroupId() string {
-	r := ""
-
-	switch database.ReadConfig().Type {
-	case database.TypeMongoDB:
-		r = p.ObjectID.Hex()
-	}
-
-	return r
 }
 
 // GroupCreate
@@ -43,24 +30,19 @@ func (p *Group) GroupId() string {
 func GroupCreate(name string, permissions []Permission) error {
 	var err error
 
-	switch database.ReadConfig().Type {
-	case database.TypeMongoDB:
-		if database.CheckConnection() {
-			session := database.Mongo.Copy()
-			defer session.Close()
-			c := session.DB(database.ReadConfig().MongoDB.Database).C(GroupsCollection)
+	if database.CheckConnection() {
+		session := database.Mongo.Copy()
+		defer session.Close()
+		c := session.DB(database.ReadConfig().MongoDB.Database).C(GroupsCollection)
 
-			group := &Group{
-				ObjectID:  bson.NewObjectId(),
-				Name: name,
-				Permissions: permissions,
-			}
-			err = c.Insert(group)
-		} else {
-			err = NoDBConnection
+		group := &Group{
+			ObjectID:  bson.NewObjectId(),
+			Name: name,
+			Permissions: permissions,
 		}
-	default:
-		err = DBNotSelected
+		err = c.Insert(group)
+	} else {
+		err = NoDBConnection
 	}
 
 	if err != nil {
@@ -77,21 +59,17 @@ func GroupCreate(name string, permissions []Permission) error {
 func GroupByName(name string) (*Group, error) {
 	var err error
 	var group Group
-	switch database.ReadConfig().Type {
-	case database.TypeMongoDB:
-		if database.CheckConnection() {
-			session := database.Mongo.Copy()
-			defer session.Close()
-			c := session.DB(database.ReadConfig().MongoDB.Database).C(GroupsCollection)
-			err = c.Find(bson.M{"name": name}).One(&group)
-		} else {
-			err = NoDBConnection
-		}
-	default:
-		err = DBNotSelected
+
+	if database.CheckConnection() {
+		session := database.Mongo.Copy()
+		defer session.Close()
+		c := session.DB(database.ReadConfig().MongoDB.Database).C(GroupsCollection)
+		err = c.Find(bson.M{"name": name}).One(&group)
+	} else {
+		err = NoDBConnection
 	}
 
-	if err != nil{
+	if err != nil {
 		log.Printf(GroupNotFound, name)
 	}
 

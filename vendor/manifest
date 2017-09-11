@@ -10,13 +10,13 @@
 		{
 			"importpath": "github.com/xenzh/gofsm.git",
 			"repository": "https://github.com/xenzh/gofsm.git",
-			"revision": "b45ec9621ad7176c2634990ba77e7d8e086316d1",
+			"revision": "497ac3f63c13815b2189b433f5ca0f7a53716c6e",
 			"branch": "master"
 		},
 		{
 			"importpath": "golang.org/x/crypto/bcrypt",
 			"repository": "https://go.googlesource.com/crypto",
-			"revision": "81e90905daefcd6fd217b62423c0908922eadb30",
+			"revision": "9ba3862cf6a5452ae579de98f9364dd2e544844c",
 			"branch": "master",
 			"path": "/bcrypt"
 		},

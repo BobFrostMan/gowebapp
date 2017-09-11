@@ -26,7 +26,7 @@ func init() {
 
 func main() {
 	// Parsing app configurations
-	filepath := "config"+string(os.PathSeparator)+"config.json"
+	filepath := "config" + string(os.PathSeparator) + "config.json"
 	jsonconfig.Load(filepath, config)
 
 	// Connect to database
@@ -36,7 +36,7 @@ func main() {
 	createDefaultDBEntities()
 
 	// Configure API endpoint, register handlers
-	route.ConfigRoutes()
+	route.ConfigRoutes(model.GetAllMethods())
 
 	// Starting server using configuration from config
 	route.StartServer(&config.Server)
@@ -52,8 +52,8 @@ var config = &configuration{}
 
 // configuration contains the application settings
 type configuration struct {
-	Database  database.Info   `json:"Database"`
-	Server    server.Server   `json:"Server"`
+	Database database.Info   `json:"Database"`
+	Server   server.Server   `json:"Server"`
 }
 
 // ParseJSON unmarshals bytes to structs
@@ -68,7 +68,15 @@ func (c *configuration) ParseJSON(b []byte) error {
 
 // createDefaultDBEntities
 // Creates first permissions, group and user and saves them to DB (if not created yet)
-func createDefaultDBEntities(){
+func createDefaultDBEntities() {
+	if _, err := model.MethodByName("auth"); err != nil {
+		err = model.CreateMethod("auth", []model.Parameter{
+			{ Name: "login", Required: true, Type: model.ParamTypeString },
+			{ Name: "pass", Required: true, Type: model.ParamTypeString },
+		}, []byte{
+		});
+	}
+
 	initialPerms := getInitPermissions()
 	for _, p := range initialPerms {
 		if _, err := model.PermissionByName(p.Name); err != nil {
@@ -88,7 +96,7 @@ func createDefaultDBEntities(){
 	// Create initial permission group
 	groupName := "initial"
 	group, err := model.GroupByName(groupName);
-	if  err != nil {
+	if err != nil {
 		model.GroupCreate(groupName, permissions)
 		//filling group again
 		group, _ = model.GroupByName(groupName);
@@ -111,13 +119,13 @@ func createDefaultDBEntities(){
 // *****************************************************************************
 func getInitPermissions() []model.Permission {
 	return []model.Permission{
-		{	Name: "readMethod", Type: model.TypeMethod,
+		{Name: "readMethod", Type: model.TypeMethod,
 			Value: "readSomeMethod",
 			Read:true,
 			Update:false,
 			Execute:false,
 		},
-		{	Name: "executeMethod",
+		{Name: "executeMethod",
 			Type: model.TypeMethod,
 			Value: "executeSomeMethod",
 			Read:true,
