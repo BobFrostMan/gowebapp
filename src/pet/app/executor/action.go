@@ -19,17 +19,41 @@ func setResult(ctx simple_fsm.ContextOperator) error {
 		ctx.PutResult(failed)
 	} else {
 		if !ctx.Has("result") {
-			var msg string
-			if name, _ := ctx.Str("methodName"); name != "" {
-				msg = fmt.Sprintf("Flow '%s' structure, wasn't formed correctly! No result was set for this flow!", name)
+			if !ctx.Has("response") {
+				var msg string
+				if name, _ := ctx.Str("methodName"); name != "" {
+					msg = fmt.Sprintf("Flow '%s' structure, wasn't formed correctly! No result was set for this flow!", name)
+				} else {
+					msg = "Current flow structure, wasn't formed correctly! No result was set for this flow!"
+				}
+				ctx.PutResult(Result{
+					Status:http.StatusInternalServerError,
+					Data: msg,
+				})
+				log.Println("Result wasn't set by any action!!!")
 			} else {
-				msg = "Current flow structure, wasn't formed correctly! No result was set for this flow!"
+				responseMap := get("response", ctx).(map[string]interface{})
+				ctx.PutResult(processData(responseMap, ctx))
+				/*
+				"response" : {
+                                    "code" : 200,
+                                    "data" : [
+                                        {
+                                            "name" : "value",
+                                            "value" : "value",
+                                            "from" : "entity"
+                                        },
+                                        {
+                                            "name" : "expiration",
+                                            "value" : "expiration",
+                                            "from" : "entity"
+                                        }
+                                    ]
+                                }
+				 */
+
+
 			}
-			ctx.PutResult(Result{
-				Status:http.StatusInternalServerError,
-				Data: msg,
-			})
-			log.Println("Result wasn't set by any action!!!")
 		}
 		// else already set!
 	}
@@ -67,28 +91,28 @@ func setToContext(ctx simple_fsm.ContextOperator) error {
 			if (k == "override"){
 				continue
 			}
-			log.Printf("Key from set section:\n%v", k)
-			log.Printf("Value from set section:\n%v", v)
+//			log.Printf("Key from set section:\n%v", k)
+//			log.Printf("Value from set section:\n%v", v)
 			obj := getAsMap(v)
 			objType, present := obj["type"]
-			log.Printf("Type value for object present?: %v", present)
-			log.Printf("Type value for object is: %v", objType)
+//			log.Printf("Type value for object present?: %v", present)
+//			log.Printf("Type value for object is: %v", objType)
 			//log.Printf("Type value for object as string: %v", objType.(string))
 			if present {
-				log.Printf("Type specified!\n%v", setToContext)
+//				log.Printf("Type specified!\n%v", setToContext)
 				switch objType.(string) {
 					case "time":
-						log.Printf("Saving TIME:\n%v - %v", k, createTime(obj))
+//						log.Printf("Saving TIME:\n%v - %v", k, createTime(obj))
 						ctx.Put(k, createTime(obj))
 					case "uuid":
 						generated :=createUUID(obj)
-						log.Printf("Saving uuid:\n%v - %v", k, generated)
+//						log.Printf("Saving uuid:\n%v - %v", k, generated)
 						ctx.Put(k, generated)
 					default:
 						ctx.Put(k, v)
 				}
 			} else {
-				log.Printf("Type is not complex type so it will be set 'as is':\n%v = %v", k, v)
+//				log.Printf("Type is not complex type so it will be set 'as is':\n%v = %v", k, v)
 				ctx.Put(k, v)
 			}
 		} else {
@@ -117,7 +141,15 @@ func list(ctx simple_fsm.ContextOperator) error {
 		})
 	}
 	if len(entity) > 0 {
-		ctx.Put("exists", true)
+		ent1 := entity[0].(bson.M)
+//		log.Printf("Entity 1: %v", ent1)
+		if ent1["_id"] != nil || ent1["_id"] != "" {
+			//log.Println("Entity 1 exists!")
+			ctx.Put("exists", true)
+		} else {
+			//log.Println("Entity 1 doesn't exist!")
+			ctx.Put("exists", false)
+		}
 	} else {
 		ctx.Put("exists", false)
 	}
@@ -127,7 +159,7 @@ func list(ctx simple_fsm.ContextOperator) error {
 		ctx.Put("last_entity", previous)
 	}
 
-	log.Printf("Entity set to context\n%v", entity)
+	//log.Printf("Entity set to context\n%v", entity)
 	ctx.Put("entity", entity)
 	//TODO: remove tmp
 	/*ctx.PutResult(Result{
@@ -139,6 +171,7 @@ func list(ctx simple_fsm.ContextOperator) error {
 
 func create(ctx simple_fsm.ContextOperator) error {
 	target := getStr("target", ctx)
+	log.Printf("Creating new entity in %s", target)
 	insertQuery := find(ctx)
 	entity, er := model.CreateEntity(target, insertQuery)
 	if er != nil {
@@ -177,14 +210,59 @@ func create(ctx simple_fsm.ContextOperator) error {
 	return nil
 }
 
+func update(ctx simple_fsm.ContextOperator) error {
+	target := getStr("target", ctx)
+	log.Printf("Updating new entity in %s", target)
+	updateQuery := findForUpdate(get("update_values", ctx).(map[string]interface{}), ctx)
+	findQuery := findForUpdate(get("find", ctx).(map[string]interface{}), ctx)
+	entity, er := model.UpdateEntity(target, findQuery, updateQuery, getResultObject("type", 0))
+	if er != nil {
+		log.Printf("Error during db request: %v", er)
+		ctx.Put("failed", true)
+		ctx.Put("exists", false)
+		msg := fmt.Sprintf("Can not insert entity with query: '%v'. Message: %s", updateQuery, er)
+		ctx.Put("failure", Result{
+			Status: http.StatusInternalServerError,
+			Data: msg,
+		})
+		return nil
+	}
+
+	//TODO: handle existence
+	if len(entity) > 0 {
+		ent1 := entity[0].(bson.M)
+		//		log.Printf("Entity 1: %v", ent1)
+		if ent1["_id"] != nil || ent1["_id"] != "" {
+			//log.Println("Entity 1 exists!")
+			ctx.Put("exists", true)
+		} else {
+			//log.Println("Entity 1 doesn't exist!")
+			ctx.Put("exists", false)
+		}
+	} else {
+		ctx.Put("exists", false)
+	}
+	if ctx.Has("entity") {
+		previous := get("entity", ctx)
+		log.Printf("Found last entity. It will be set as 'last_entity' set to context\n%v", previous)
+		ctx.Put("last_entity", previous)
+	}
+
+	//log.Printf("Entity set to context\n%v", entity)
+	ctx.Put("entity", entity)
+	return nil
+}
+
 func authorize(ctx simple_fsm.ContextOperator) error {
 	rawUser, _ := ctx.Raw("entity")
 	pass, _ := ctx.Str("pass")
-	log.Printf("User: %v", rawUser)
+	//log.Printf("User: %v", rawUser)
 	usrs := []model.User{}
 	usersBytes, _ := json.Marshal(rawUser)
 	er := json.Unmarshal(usersBytes, &usrs)
-	log.Printf("Unmarshalled err: %v", er)
+	if er != nil {
+		log.Printf("Unmarshalled err: %v", er)
+	}
 	log.Printf("Unmarshalled user: %v", usrs)
 	userObj := usrs[0]
 	if err := passhash.CompareHashAndPassword(userObj.Password, pass); err != nil {
@@ -196,6 +274,7 @@ func authorize(ctx simple_fsm.ContextOperator) error {
 		})
 		return nil
 	}
+	ctx.Put("failed", false)
 	/*//TODO: remove this synthetic result
 	ctx.PutResult(Result{
 		Status: http.StatusOK,
@@ -208,12 +287,39 @@ func authorize(ctx simple_fsm.ContextOperator) error {
 func find(ctx simple_fsm.ContextOperator) bson.M {
 	by := findBy(ctx)
 	if ctx.Has("where") {
-		log.Println("Finding with 'where' conditions!")
+//		log.Println("Finding with 'where' conditions!")
 		return withWhere(by, ctx)
 	} else {
-		log.Println("Simple find, no 'where' were found")
+//		log.Println("Simple find, no 'where' were found")
 		return findRequest(by, ctx)
 	}
+}
+
+func findForUpdate(m map[string]interface{}, ctx simple_fsm.ContextOperator) bson.M {
+	result := make(map[string]interface{})
+
+	byArr := m["by"].([]interface{})
+	by := make([]string, len(byArr))
+	for _, v := range byArr {
+		by = append(by, v.(string))
+	}
+
+	whereSection := m["where"].([]interface{})
+	log.Printf("Where section: %v", whereSection)
+
+	// match each 'where' object with 'by'
+	for _, w := range whereSection {
+		whereObj := newWhereCondition(w.(map[string]interface{}))
+		for _, byEl := range by {
+			// when 'where.name' == 'by'[i]
+			if byEl != "" && whereObj.Name == byEl {
+				result[byEl] = from(whereObj, ctx)
+				break;
+			}
+		}
+
+	}
+	return bson.M(result)
 }
 
 // findRequest
@@ -240,7 +346,7 @@ func findBy(ctx simple_fsm.ContextOperator) []string {
 	for _, v := range byObj.([]interface{}) {
 		by = append(by, v.(string))
 	}
-	log.Printf("By array %v", by)
+//	log.Printf("By array %v", by)
 	return by
 }
 
@@ -249,7 +355,7 @@ func findBy(ctx simple_fsm.ContextOperator) []string {
 func withWhere(by []string, ctx simple_fsm.ContextOperator) bson.M {
 	result := make(map[string]interface{})
 	whereSection := get("where", ctx)
-	log.Printf("Where section: %v", whereSection)
+	//log.Printf("Where section: %v", whereSection)
 
 	// match each 'where' object with 'by'
 	for _, w := range whereSection.([]interface{}) {
@@ -263,7 +369,7 @@ func withWhere(by []string, ctx simple_fsm.ContextOperator) bson.M {
 		}
 
 	}
-	log.Printf("Where matched objects: %v", result)
+	//log.Printf("Where matched objects: %v", result)
 
 	// fill other params that not match to 'where' condition
 	for _, arg := range by {
@@ -276,7 +382,7 @@ func withWhere(by []string, ctx simple_fsm.ContextOperator) bson.M {
 			}
 		}
 	}
-	log.Printf("Match where result: %v", result)
+	//log.Printf("Match where result: %v", result)
 	return bson.M(result)
 }
 
@@ -286,22 +392,45 @@ type where struct {
 	From  string `json:"from"`
 }
 
+func processData(responseMap map[string]interface{}, ctx simple_fsm.ContextOperator) Result {
+	var result Result
+	dataMap := make(map[string]interface{})
+
+	if code, present :=responseMap["code"]; present{
+		result.Status = code.(int)
+	}
+	dataArr := responseMap["data"].([]interface{})
+
+	for _,value := range dataArr {
+		whereCond := newWhereCondition(value.(map[string]interface{}))
+		dataMap[whereCond.Name] = from(whereCond, ctx)
+	}
+	result.Data = dataMap
+	return result
+}
+
 func newWhereCondition(m map[string]interface{}) (where) {
 	var res where
-	res.Name = m["name"].(string)
-	res.Value = m["value"].(string)
-	res.From = m["from"].(string)
+	if value, present := m["name"]; present{
+		res.Name = value.(string)
+	}
+	if value, present := m["value"]; present{
+		res.Value = value.(string)
+	}
+	if value, present := m["from"]; present{
+		res.From = value.(string)
+	}
 	return res
 }
 
 func from(whereObj where, ctx simple_fsm.ContextOperator) interface{} {
-	log.Println("From analyze started")
+	//log.Println("From analyze started")
 
 	if whereObj.From != "" {
 		if whereObj.From == "context" {
-			log.Printf("Taking value from context!\n%v\n Value: %v", whereObj, get(whereObj.Value, ctx))
+			//log.Printf("Taking value from context!\n%v\n Value: %v", whereObj, get(whereObj.Value, ctx))
 			//log.Printf("\n Name: %v, Value: %v", whereObj.Name, get(whereObj.Name, ctx))
-			log.Printf("\n Name: %v, Value: %v", whereObj.Name, get(whereObj.Value, ctx))
+			//log.Printf("\n Name: %v, Value: %v", whereObj.Name, get(whereObj.Value, ctx))
 			//log.Printf("\n From: %v, Value: %v", whereObj.From, get(whereObj.From, ctx))
 
 			// when "context" specified we will take value from root ctx
@@ -309,13 +438,13 @@ func from(whereObj where, ctx simple_fsm.ContextOperator) interface{} {
 		}
 		// when we will take value from specified "from" object in "context"
 		rawObj, _ := ctx.Raw(whereObj.From)
-		log.Printf("From Found:\n%v ", rawObj)
+		//log.Printf("From Found:\n%v ", rawObj)
 		fromParent := getAsMap(rawObj)
 		if fromParent != nil {
-			log.Printf("From fromParent is not empty %v", fromParent)
+			//log.Printf("From fromParent is not empty %v", fromParent)
 			return fromParent[whereObj.Value]
 		}
-		log.Println("From from parent wasn't found " + whereObj.From)
+		//log.Println("From from parent wasn't found " + whereObj.From)
 		return nil
 	} else {
 		// mo from specified -> we will set value as is
@@ -326,11 +455,11 @@ func from(whereObj where, ctx simple_fsm.ContextOperator) interface{} {
 
 //TODO: stupidity but it works
 func getAsMap(inputObj interface{}) map[string]interface{} {
-	log.Println("getAsMap started")
+//	log.Println("getAsMap started")
 	var result map[string]interface{}
 
 	converted := getSingleObject(inputObj)
-	log.Printf("getAsMap converted object is:\n%v", converted)
+	//log.Printf("getAsMap converted object is:\n%v", converted)
 	usersBytes, err := json.Marshal(converted)
 	if err != nil {
 		log.Printf("Failed to marshal object '%v'.\nMessage: %s", converted, err.Error())
@@ -342,7 +471,7 @@ func getAsMap(inputObj interface{}) map[string]interface{} {
 		log.Printf("Failed to unmarshal object '%v'.\nMessage: %s", converted, err.Error())
 		return nil
 	}
-	log.Printf("getAsMap result %v", result)
+	//log.Printf("getAsMap result %v", result)
 	return result
 }
 
@@ -454,193 +583,8 @@ func get(key string, ctx simple_fsm.ContextOperator) interface{} {
 }
 
 /*
- "where" :[
-	    {
-		"name" : "login",
-		"value": "userId",
-		"from" : "entity"
-	    }
-	],
- */
-
-/*
-	start := simple_fsm.NewState("start",
-		simple_fsm.NewTransitionAlways("start-find_user", "find_user",
-			func(ctx simple_fsm.ContextOperator) error {
-				log.Println("'find_user' action started")
-				err := ctx.Put("login", login)
-				er := ctx.Put("pass", pass)
-
-				if err != nil || er != nil {
-					log.Println("Internal error, can't put values to transition context!: " + err.Error())
-					//TODO: how can I return error value when I don't want to?
-					return errors.New("Internal error, can't put values to transition context!")
-				}
-				log.Println("'find_user' action successfully finished")
-				return nil
-			},
-
-		))
-	findUser := simple_fsm.NewState("find_user", []simple_fsm.Transition{
-		simple_fsm.NewTransition("find_user-user_found", "user_found",
-			func(ctx simple_fsm.ContextAccessor) (bool, error) {
-				log.Println("'user_found' guard started")
-				if !ctx.Has("login") || !ctx.Has("pass") {
-					log.Println("'user_found' can't get login/password from context!")
-					return false, errors.New("Login or password were not provided for context")
-				}
-
-				login, _ := ctx.Str("login")
-				//TODO: two similar requests, fix it
-				_, err := model.UserByLogin(login)
-				if err != nil {
-					log.Printf("'user_found' User '%s' not found", login)
-					return false, nil
-				}
-				log.Println("'user_found' guard successfully finished")
-				return true, nil
-			},
-			func(ctx simple_fsm.ContextOperator) error {
-				log.Println("'user_found' action started")
-				login, _ := ctx.Str("login")
-				//TODO: two similar requests, fix it
-				userObj, _ := model.UserByLogin(login)
-				ctx.Put("user", userObj)
-				log.Println("'user_found' action successfully finished")
-				return nil
-			}),
-		simple_fsm.NewTransition("find_user-user_not_found", "user_not_found",
-			func(ctx simple_fsm.ContextAccessor) (bool, error) {
-				log.Println("'user_not_found' guard started")
-				_, err := model.UserByLogin(login)
-				if err != nil {
-					log.Printf("User '%s' not found", login)
-					return true, nil
-				}
-				log.Println("'user_not_found' guard successfully finished")
-				return false, nil
-			},
-			func(ctx simple_fsm.ContextOperator) error {
-				ctx.PutResult(Result{
-					Status: http.StatusForbidden,
-					Data: "Credential data doesn't match to any user",
-				})
-				log.Println("'user_not_found' state acquired")
-				return nil
-			}),
-	})
-
-	userFound := simple_fsm.NewState("user_found", []simple_fsm.Transition{
-		simple_fsm.NewTransition("user_found-pass_ok", "pass_ok",
-			func(ctx simple_fsm.ContextAccessor) (bool, error) {
-				log.Println("'user_found' guard started")
-				if !ctx.Has("user") {
-					return false, errors.New("User wasn't found inside context")
-				}
-				log.Println("'user_found' guard is ok")
-				return true, nil
-			},
-			func(ctx simple_fsm.ContextOperator) error {
-				log.Println("'user_found' action started")
-				rawUser, _ := ctx.Raw("user")
-				pass, _ := ctx.Str("pass")
-				userObj := rawUser.(*model.User)
-				if err := passhash.CompareHashAndPassword(userObj.Password, pass); err != nil {
-					log.Printf("User '%s' entered wrong password!", login)
-					ctx.PutResult(Result{
-						Status: http.StatusForbidden,
-						Data: "Wrong password specified",
-					})
-					return nil
-				}
-				log.Println("'user_found' action ok")
-				return nil
-			}),
-		simple_fsm.NewTransition("user_found-pass_ok", "pass_not_ok",
-			func(ctx simple_fsm.ContextAccessor) (bool, error) {
-				log.Println("'pass_not_ok' guard started")
-				if !ctx.Has("result") {
-					log.Println("'pass_not_ok' state can't be acquired")
-					return false, nil
-				}
-				log.Println("'pass_not_ok' guard successfully finished")
-				return true, nil
-			},
-			func(ctx simple_fsm.ContextOperator) error {
-				log.Println("'pass_not_ok' state aquired")
-				return nil
-			}),
-	})
-	passOk := simple_fsm.NewState("pass_ok", []simple_fsm.Transition{
-		simple_fsm.NewTransition("pass_ok-token_created", "token_created",
-			func(ctx simple_fsm.ContextAccessor) (bool, error) {
-				log.Println("'pass_ok' guard started")
-				if !ctx.Has("result") {
-					log.Println("'pass_ok' guard is ok")
-					return true, nil
-				}
-				return false, nil
-			},
-			func(ctx simple_fsm.ContextOperator) error {
-				log.Println("'pass_ok' action started")
-				rawUser, _ := ctx.Raw("user")
-				userObj := rawUser.(*model.User)
-				log.Printf("User pass ok, creating token for %v", userObj)
-				token, err := model.TokenSet(userObj.ObjectID.Hex())
-				if err != nil {
-					log.Printf("Token wasn't created for user'%s' entered wrong password!", userObj.Name)
-					ctx.PutResult(Result{
-						Status: http.StatusInternalServerError,
-						Data: "Token wasn't created for user: " + userObj.Name,
-					})
-					return errors.New("Token wasn't created for user: " + userObj.Name)
-				}
-				ctx.Put("token", token)
-				log.Printf("Token created for user %v\n", userObj.Name)
-				ctx.PutResult(Result{
-					Status: http.StatusOK,
-					Data: token,
-				})
-				log.Println("'pass_ok' action successfully finished")
-				return nil
-			}),
-		simple_fsm.NewTransition("pass_ok-failed_to_create_token", "failed_to_create_token",
-			func(ctx simple_fsm.ContextAccessor) (bool, error) {
-				log.Println("'failed_to_create_token' guard started")
-				if !ctx.Has("result") {
-					log.Println("'failed_to_create_token' state can't be acquired")
-					return false, nil
-				}
-				log.Println("'failed_to_create_token' guard successfully finished")
-				return true, nil
-			},
-			func(ctx simple_fsm.ContextOperator) error {
-				log.Println("'failed_to_create_token' state aquired")
-				return nil
-			}),
-	},
-	)
-	tokenCreated := simple_fsm.NewState("token_created", nil)
-	failedToCreateToken := simple_fsm.NewState("failed_to_create_token", nil)
-	passNotOk := simple_fsm.NewState("pass_not_ok", nil)
-	userNotFound := simple_fsm.NewState("user_not_found", nil)
-
-	structure := simple_fsm.NewStructure()
-	//state -> parent
-	structure.AddStartState(start, nil)
-	structure.AddState(findUser, start)
-	structure.AddState(userFound, findUser)
-	structure.AddState(userNotFound, findUser)
-	structure.AddState(passOk, userFound)
-	structure.AddState(passNotOk, userFound)
-	structure.AddState(tokenCreated, passOk)
-	structure.AddState(failedToCreateToken, passOk)
-*/
-
-
-/*
 {
-    "_id" : ObjectId("59b28e72473843430c0d235f"),
+    "_id" : ObjectId("59aee26d6ec32f1174db2ba4"),
     "name" : "auth",
     "parameters" : [
         {
@@ -696,11 +640,22 @@ func get(key string, ctx simple_fsm.ContextOperator) interface{} {
                         "to" : "user_not_found",
                         "guard" : {
                             "type" : "context",
-                            "key" : "failed",
-                            "value" : true
+                            "key" : "exists",
+                            "value" : false
                         },
                         "action" : {
-                            "name" : "set_result"
+                            "name" : "set_result",
+                            "params" : {
+                                "response" : {
+                                    "code" : 403,
+                                    "data" : [
+                                        {
+                                            "name" : "message",
+                                            "value" : "Provided user wasn't found"
+                                        }
+                                    ]
+                                }
+                            }
                         }
                     }
                 }
@@ -826,7 +781,53 @@ func get(key string, ctx simple_fsm.ContextOperator) interface{} {
             },
             "token_found" : {
                 "parent" : "find_token",
-                "transitions" : {}
+                "transitions" : {
+                    "token_found-update_token" : {
+                        "to" : "update_token",
+                        "guard" : {
+                            "type" : "context",
+                            "key" : "failed",
+                            "value" : false
+                        },
+                        "action" : {
+                            "name" : "update",
+                            "params" : {
+                                "target" : "Token",
+                                "type" : "Token",
+                                "find" : {
+                                    "by" : [
+                                        "userId"
+                                    ],
+                                    "where" : [
+                                        {
+                                            "name" : "userId",
+                                            "value" : "_id",
+                                            "from" : "last_entity"
+                                        }
+                                    ]
+                                },
+                                "update_values" : {
+                                    "by" : [
+                                        "expiration",
+                                        "value"
+                                    ],
+                                    "where" : [
+                                        {
+                                            "name" : "expiration",
+                                            "value" : "token_end_date",
+                                            "from" : "context"
+                                        },
+                                        {
+                                            "name" : "value",
+                                            "value" : "uuid",
+                                            "from" : "context"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
             },
             "token_not_found" : {
                 "parent" : "find_token",
@@ -881,10 +882,64 @@ func get(key string, ctx simple_fsm.ContextOperator) interface{} {
                             "value" : false
                         },
                         "action" : {
-                            "name" : "set_result"
+                            "name" : "set_result",
+                            "params" : {
+                                "response" : {
+                                    "code" : 200,
+                                    "data" : [
+                                        {
+                                            "name" : "value",
+                                            "value" : "value",
+                                            "from" : "entity"
+                                        },
+                                        {
+                                            "name" : "expiration",
+                                            "value" : "expiration",
+                                            "from" : "entity"
+                                        }
+                                    ]
+                                }
+                            }
                         }
                     }
                 }
+            },
+            "update_token" : {
+                "parent" : "token_found",
+                "transitions" : {
+                    "update_token-token_updated" : {
+                        "to" : "token_updated",
+                        "guard" : {
+                            "type" : "context",
+                            "key" : "failed",
+                            "value" : false
+                        },
+                        "action" : {
+                            "name" : "set_result",
+                            "params" : {
+                                "response" : {
+                                    "code" : 200,
+                                    "data" : [
+                                        {
+                                            "name" : "value",
+                                            "value" : "uuid",
+                                            "from" : "context"
+                                        },
+                                        {
+                                            "name" : "expiration",
+                                            "value" : "token_end_date",
+                                            "from" : "context"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "token_updated" : {
+                "parent" : "update_token",
+                "transitions" : {}
             },
             "token_created" : {
                 "parent" : "create_token",

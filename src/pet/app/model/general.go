@@ -4,8 +4,7 @@ import (
 	"pet/app/shared/database"
 	"gopkg.in/mgo.v2/bson"
 	"log"
-	//"strconv"
-	//"fmt"
+	"gopkg.in/mgo.v2"
 )
 
 func Entity(collection string, by bson.M, limit int, resultObj interface{}) (*interface{}, error) {
@@ -63,7 +62,7 @@ func EntityArray(collection string, by bson.M, limit int, resultObj []interface{
 			defer session.Close()
 			c := session.DB(database.ReadConfig().MongoDB.Database).C(collection)
 			//err = c.Find(bson.M{obj}).Limit(count).All(obj)
-			log.Printf("By: %v", by)
+			//log.Printf("By: %v", by)
 			if limit == 0 {
 				err = c.Find(by).All(&resultObj)
 			} else {
@@ -89,9 +88,6 @@ func CreateEntity(collection string, insert bson.M) (interface{}, error) {
 	var insertQuery map[string]interface{}
 	insertQuery = map[string]interface{}(insert)
 	insertQuery["_id"] = bson.NewObjectId()
-	if err != nil {
-		log.Println("Error occured during limit taking. Message: " + err.Error())
-	}
 
 	switch database.ReadConfig().Type {
 	case database.TypeMongoDB:
@@ -113,4 +109,37 @@ func CreateEntity(collection string, insert bson.M) (interface{}, error) {
 	}
 
 	return insertQuery, err
+}
+
+
+func UpdateEntity(collection string, find bson.M, update bson.M, resultObj []interface{}) ([]interface{}, error) {
+	var err error
+
+	switch database.ReadConfig().Type {
+	case database.TypeMongoDB:
+		log.Printf("Find part: %v", find)
+		log.Printf("Update part: %v", update)
+		if database.CheckConnection() {
+			session := database.Mongo.Copy()
+			defer session.Close()
+			c := session.DB(database.ReadConfig().MongoDB.Database).C(collection)
+			c.Find(find).Apply(mgo.Change{
+				Update: bson.M{
+					"$set": update,
+				},
+				ReturnNew: true,
+			}, &resultObj)
+
+		} else {
+			err = NoDBConnection
+		}
+	default:
+		err = DBNotSelected
+	}
+
+	if err != nil {
+		log.Printf("Failed to find entity with find %s and update %s", find,update)
+	}
+
+	return resultObj, err
 }

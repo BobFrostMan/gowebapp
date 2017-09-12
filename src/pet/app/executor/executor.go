@@ -36,7 +36,7 @@ func (a *ApiExecutor) initActionMap() {
 	a.AddAction("no_action", noAction)
 	a.AddAction("auth", authorize)
 	a.AddAction("set_to_context", setToContext)
-	a.AddAction("create", create)
+	a.AddAction("update", update)
 }
 
 func (a *ApiExecutor) AddAction(name string, action func(ctx simple_fsm.ContextOperator) error){
@@ -204,7 +204,7 @@ func (a *ApiExecutor) executeRequest(req *Request) (Result, error) {
 		fsm = authWithFSM(req.Params["login"], req.Params["pass"])
 	} else {
 		str := a.StructureMap[req.MethodName]
-		log.Printf("Structure map %v", str)
+//		log.Printf("Structure map %v", str)
 		fsm = simple_fsm.NewFsm(str)
 		fsm.SetInput("methodName", req.MethodName)
 		fsm.SetInput("start_date", time.Now())
