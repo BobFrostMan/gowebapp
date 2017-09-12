@@ -15,7 +15,7 @@ var apiExecutor *executor.ApiExecutor
 // ConfigRoutes
 // Registering handlers and binding them to according url
 func ConfigRoutes(methods *[]model.Method) {
-	apiExecutor = executor.NewExecutor().LoadMethods(*methods)
+	apiExecutor = executor.NewExecutor().LoadMethods(*methods).LoadStructure(*methods)
 
 	http.Handle("/", http.StripPrefix("/static/", http.FileServer(http.Dir("src/static"))))
 	http.Handle("/favicon.ico", http.NotFoundHandler())
@@ -63,7 +63,8 @@ func respond(res *executor.Result, w http.ResponseWriter) {
 // Reloads all api methods from database
 func reloadApiMethods(w http.ResponseWriter, req *http.Request) {
 	//TODO: add security support here, for L3/Admin only
-	apiExecutor.ReloadMethods(*model.GetAllMethods())
+	methods := *model.GetAllMethods()
+	apiExecutor.ReloadMethods(methods).LoadStructure(methods)
 	respond(&executor.Result{
 		Status: http.StatusAccepted,
 		Data: "Reload methods procedure started",
