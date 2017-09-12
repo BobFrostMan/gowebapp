@@ -60,31 +60,35 @@ func setToContext(ctx simple_fsm.ContextOperator) error {
 	//do nothing
 	log.Println("Setting params to context")
 	setToContext := get("set", ctx).(map[string]interface{})
-	override, _ := ctx.Bool("override")
+	override, _ := setToContext["override"].(bool)
 	log.Printf("Set section:\n%v", setToContext)
 	for k, v := range setToContext {
 		if override {
+			if (k == "override"){
+				continue
+			}
+			log.Printf("Key from set section:\n%v", k)
+			log.Printf("Value from set section:\n%v", v)
 			obj := getAsMap(v)
 			objType, present := obj["type"]
 			log.Printf("Type value for object present?: %v", present)
 			log.Printf("Type value for object is: %v", objType)
-			log.Printf("Type value for object as string: %v", objType.(string))
+			//log.Printf("Type value for object as string: %v", objType.(string))
 			if present {
 				log.Printf("Type specified!\n%v", setToContext)
 				switch objType.(string) {
-				case "time":
-					log.Printf("Saving TIME:\n%v - %v", k, createTime(obj))
-					ctx.Put(k, createTime(obj))
-					return nil
-				case "uuid":
-					log.Printf("Saving uuid:\n%v - %v", k, createUUID(obj))
-					ctx.Put(k, createUUID(obj))
-					return nil
-				default:
-					ctx.Put(k, v)
+					case "time":
+						log.Printf("Saving TIME:\n%v - %v", k, createTime(obj))
+						ctx.Put(k, createTime(obj))
+					case "uuid":
+						generated :=createUUID(obj)
+						log.Printf("Saving uuid:\n%v - %v", k, generated)
+						ctx.Put(k, generated)
+					default:
+						ctx.Put(k, v)
 				}
 			} else {
-				log.Printf("Type is not complex type so it will be set 'as is':\n%v", setToContext)
+				log.Printf("Type is not complex type so it will be set 'as is':\n%v = %v", k, v)
 				ctx.Put(k, v)
 			}
 		} else {
@@ -192,11 +196,11 @@ func authorize(ctx simple_fsm.ContextOperator) error {
 		})
 		return nil
 	}
-	//TODO: remove this synthetic result
+	/*//TODO: remove this synthetic result
 	ctx.PutResult(Result{
 		Status: http.StatusOK,
 		Data: usrs,
-	})
+	})*/
 
 	return nil
 }
@@ -295,10 +299,10 @@ func from(whereObj where, ctx simple_fsm.ContextOperator) interface{} {
 
 	if whereObj.From != "" {
 		if whereObj.From == "context" {
-			log.Printf("Taking value from context! %v\n Value: %v", whereObj, get(whereObj.Value, ctx))
-			log.Printf("\n Name: %v, Value: %v", whereObj.Name, get(whereObj.Name, ctx))
-			log.Printf("\n Value: %v, Value: %v", whereObj.Value, get(whereObj.Value, ctx))
-			log.Printf("\n From: %v, Value: %v", whereObj.From, get(whereObj.From, ctx))
+			log.Printf("Taking value from context!\n%v\n Value: %v", whereObj, get(whereObj.Value, ctx))
+			//log.Printf("\n Name: %v, Value: %v", whereObj.Name, get(whereObj.Name, ctx))
+			log.Printf("\n Name: %v, Value: %v", whereObj.Name, get(whereObj.Value, ctx))
+			//log.Printf("\n From: %v, Value: %v", whereObj.From, get(whereObj.From, ctx))
 
 			// when "context" specified we will take value from root ctx
 			return get(whereObj.Value, ctx)
@@ -326,6 +330,7 @@ func getAsMap(inputObj interface{}) map[string]interface{} {
 	var result map[string]interface{}
 
 	converted := getSingleObject(inputObj)
+	log.Printf("getAsMap converted object is:\n%v", converted)
 	usersBytes, err := json.Marshal(converted)
 	if err != nil {
 		log.Printf("Failed to marshal object '%v'.\nMessage: %s", converted, err.Error())
@@ -333,6 +338,7 @@ func getAsMap(inputObj interface{}) map[string]interface{} {
 	}
 	err = json.Unmarshal(usersBytes, &result)
 	if err != nil {
+		//FIXME: failed to unmarshall 'false'
 		log.Printf("Failed to unmarshal object '%v'.\nMessage: %s", converted, err.Error())
 		return nil
 	}
@@ -346,6 +352,7 @@ func getSingleObject(inputObj interface{}) interface{} {
 	case []interface{}:
 		converted = obj[0]
 	case interface{}:
+		converted = obj
 	default:
 		fmt.Printf("Unsupported type: %T\n", converted)
 	}
@@ -380,7 +387,7 @@ func getResultObject(objectType string, limit int) []interface{} {
 func createTime(timeObj map[string]interface{}) interface{} {
 	startTime := time.Now()
 	var duration time.Duration
-	var unitsCount int
+	var unitsCount float64
 	if value, present := timeObj["units"]; present {
 		switch value.(string) {
 		case "seconds":
@@ -391,7 +398,7 @@ func createTime(timeObj map[string]interface{}) interface{} {
 	}
 
 	if value, present := timeObj["value"]; present {
-		unitsCount = value.(int)
+		unitsCount = value.(float64)
 	}
 
 	if value, present := timeObj["operation"]; present {
@@ -413,11 +420,12 @@ func createTime(timeObj map[string]interface{}) interface{} {
  */
 
 func createUUID(timeObj map[string]interface{})  interface{} {
+	log.Println("Creating new uuid!")
 	if val, present := timeObj["value"]; present && val != "new"{
 		return val
 	}
 
-	return uuid.NewV4()
+	return uuid.NewV4().String()
 }
 
 func getStr(key string, ctx simple_fsm.ContextOperator) string {
@@ -852,7 +860,7 @@ func get(key string, ctx simple_fsm.ContextOperator) interface{} {
                                         "from" : "context"
                                     },
                                     {
-                                        "name" : "userId",
+                                        "name" : "value",
                                         "value" : "uuid",
                                         "from" : "context"
                                     }
@@ -864,6 +872,22 @@ func get(key string, ctx simple_fsm.ContextOperator) interface{} {
             },
             "create_token" : {
                 "parent" : "token_not_found",
+                "transitions" : {
+                    "create_token-token_created" : {
+                        "to" : "token_created",
+                        "guard" : {
+                            "type" : "context",
+                            "key" : "failed",
+                            "value" : false
+                        },
+                        "action" : {
+                            "name" : "set_result"
+                        }
+                    }
+                }
+            },
+            "token_created" : {
+                "parent" : "create_token",
                 "transitions" : {}
             },
             "pass_failed" : {
