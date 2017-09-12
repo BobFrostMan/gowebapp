@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"errors"
 	"encoding/json"
+	"time"
 )
 
 type ApiExecutor struct {
@@ -34,6 +35,8 @@ func (a *ApiExecutor) initActionMap() {
 	a.AddAction("create", create)
 	a.AddAction("no_action", noAction)
 	a.AddAction("auth", authorize)
+	a.AddAction("set_to_context", setToContext)
+	a.AddAction("create", create)
 }
 
 func (a *ApiExecutor) AddAction(name string, action func(ctx simple_fsm.ContextOperator) error){
@@ -204,6 +207,7 @@ func (a *ApiExecutor) executeRequest(req *Request) (Result, error) {
 		log.Printf("Structure map %v", str)
 		fsm = simple_fsm.NewFsm(str)
 		fsm.SetInput("methodName", req.MethodName)
+		fsm.SetInput("start_date", time.Now())
 		fsm.SetInput("failed", false)
 		for k, v := range req.Params {
 			fsm.SetInput(k, v)
