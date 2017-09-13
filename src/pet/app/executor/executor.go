@@ -166,7 +166,7 @@ func checkPermissions(request *Request) (bool, error) {
 func validateParams(method model.Method, params map[string]string) (bool, error) {
 	var notSpecified []model.Parameter
 	for _, param := range method.Parameters {
-		value := params[param.Name]//form.Get(param.Name)
+		value := params[param.Name]
 		if param.Required {
 			if value != "" {
 				actualType := reflect.TypeOf(value).String()
@@ -197,21 +197,13 @@ func validateParams(method model.Method, params map[string]string) (bool, error)
 // Executes request and returns Result object
 func (a *ApiExecutor) executeRequest(req *Request) (Result, error) {
 	var fsm *simple_fsm.Fsm
-
-	if req.MethodName == "auth0" {
-		//TODO: remove temporary condition. Replace it with Method - to action converter
-		//TODO: add simple fsm creation here
-		fsm = authWithFSM(req.Params["login"], req.Params["pass"])
-	} else {
-		str := a.StructureMap[req.MethodName]
-//		log.Printf("Structure map %v", str)
-		fsm = simple_fsm.NewFsm(str)
-		fsm.SetInput("methodName", req.MethodName)
-		fsm.SetInput("start_date", time.Now())
-		fsm.SetInput("failed", false)
-		for k, v := range req.Params {
-			fsm.SetInput(k, v)
-		}
+	str := a.StructureMap[req.MethodName]
+	fsm = simple_fsm.NewFsm(str)
+	fsm.SetInput("methodName", req.MethodName)
+	fsm.SetInput("start_date", time.Now())
+	fsm.SetInput("failed", false)
+	for k, v := range req.Params {
+		fsm.SetInput(k, v)
 	}
 	execRes, err := fsm.Run()
 	printFsmDump(fsm)
@@ -222,24 +214,13 @@ func (a *ApiExecutor) executeRequest(req *Request) (Result, error) {
 	return execRes.(Result), nil
 }
 
-// authWithFSM
-// Temporary action
-func authWithFSM(login string, pass string) *simple_fsm.Fsm {
-	fsm := simple_fsm.NewFsm(nil)
-	return fsm
-}
-
 // printFsmDump
 // prints fsm execution params to log in debug format
 func printFsmDump(fsm *simple_fsm.Fsm) {
 	r, er := fsm.Result()
-	log.Printf("FSM state is running?: %v", fsm.Running())
 	log.Printf("FSM state is completed?: %v", fsm.Completed())
-	log.Printf("FSM state is idle?: %v", fsm.Idle())
 	log.Printf("FSM state is fatal?: %v", fsm.Fatal())
 	log.Printf("FSM Result: %v", r)
 	log.Printf("FSM Error is: %v", er)
-	log.Printf("Error kind is: %v", er)
-	log.Printf("Error is nill?: %v", er == nil)
 	log.Printf("Full FSM dump:\n%s", simple_fsm.Dump(fsm))
 }

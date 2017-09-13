@@ -15,7 +15,7 @@ func NewRequest(raw *http.Request) *Request {
 	var request Request
 	raw.ParseForm()
 
-	request.MethodName = methodName(raw)
+	request.MethodName = getMethodName(raw)
 	request.Token = raw.Form.Get("token")
 	request.Params = make(map[string]string)
 
@@ -28,7 +28,7 @@ func NewRequest(raw *http.Request) *Request {
 
 // requestURL
 // returns pretty request URL string from given request
-func methodName(req *http.Request) string {
+func getMethodName(req *http.Request) string {
 	var methodName string
 
 	if strings.Contains(req.URL.Path, "/api/") {
