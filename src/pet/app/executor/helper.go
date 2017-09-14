@@ -97,7 +97,7 @@ func resolveValue(valueMap interface{}) interface{} {
 // findBson
 // Return BSON object, from given map. BSON object represents mongoDB find query
 func findBson(ctx simple_fsm.ContextOperator) bson.M {
-	fields := asSlice(get(fields_key, ctx))
+	fields := asStringsSlice(get(fields_key, ctx))
 	if ctx.Has(where_key) {
 		return withWhere(fields, ctx)
 	} else {
@@ -111,7 +111,7 @@ func updateBson(m map[string]interface{}, ctx simple_fsm.ContextOperator) bson.M
 	res := make(map[string]interface{})
 
 	fieldsObj := m[fields_key].([]interface{})
-	fields := asSlice(fieldsObj)
+	fields := asStringsSlice(fieldsObj)
 
 	whereSection := m[where_key].([]interface{})
 	log.Printf("Where section: %v", whereSection)
@@ -146,16 +146,6 @@ func findRequest(args []string, ctx simple_fsm.ContextOperator) bson.M {
 		}
 	}
 	return bson.M(res)
-}
-
-// asSlice
-// Returns obj as slice of strings, if type checking passed
-func asSlice(obj interface{}) []string {
-	fields := make([]string, len(obj.([]interface{})))
-	for _, v := range obj.([]interface{}) {
-		fields = append(fields, v.(string))
-	}
-	return fields
 }
 
 // withWhere
@@ -198,6 +188,8 @@ func processData(responseMap map[string]interface{}, ctx simple_fsm.ContextOpera
 
 	if code, present := responseMap["code"]; present {
 		res.Status = code.(int)
+	} else {
+		res.Status = http.StatusOK
 	}
 	dataArr := responseMap["data"].([]interface{})
 
@@ -230,8 +222,19 @@ func handleFrom(whereObj where, ctx simple_fsm.ContextOperator) interface{} {
 		return whereObj.Value
 	}
 }
-// setFailureToContext
-// Set flags 'exists' and 'failed'. Also set failure object to context by 'failure' key
+
+// asSlice
+// Returns obj as slice of strings, if type checking passed
+func asStringsSlice(obj interface{}) []string {
+	fields := make([]string, len(obj.([]interface{})))
+	for _, v := range obj.([]interface{}) {
+		fields = append(fields, v.(string))
+	}
+	return fields
+}
+
+// asMap
+// Returns interface as map of interface values accessed by string keys
 func asMap(inputObj interface{}) map[string]interface{} {
 	//FIXME: stupidity but it works
 	var res map[string]interface{}
@@ -272,10 +275,7 @@ func setFailureToContext(msg string, ctx simple_fsm.ContextOperator) {
 	ctx.Put(failed, true)
 	m := make(map[string]interface{})
 	m["message"] = msg
-	ctx.Put(failure, Result{
-		Status: http.StatusInternalServerError,
-		Data: m,
-	})
+	ctx.Put(failure, NewResult(http.StatusInternalServerError, m))
 }
 
 // createTime

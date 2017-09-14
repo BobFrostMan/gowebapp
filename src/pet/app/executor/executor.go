@@ -33,17 +33,16 @@ func (a *ApiExecutor) initActionMap() {
 	a.AddAction("set_result", setResult)
 	a.AddAction("list", list)
 	a.AddAction("create", create)
-	a.AddAction("no_action", noAction)
 	a.AddAction("auth", authorize)
 	a.AddAction("set_to_context", setToContext)
 	a.AddAction("update", update)
 }
 
-func (a *ApiExecutor) AddAction(name string, action func(ctx simple_fsm.ContextOperator) error){
-	a.Actions[name] = func(ctx simple_fsm.ContextOperator) error{
+func (a *ApiExecutor) AddAction(name string, action func(ctx simple_fsm.ContextOperator) error) {
+	a.Actions[name] = func(ctx simple_fsm.ContextOperator) error {
 		log.Printf("'%s' action started", name)
 		err := action(ctx)
-		if err != nil{
+		if err != nil {
 			log.Printf("'%s' action finished with error: %v", name, err)
 			return err
 		} else {
@@ -58,10 +57,8 @@ func (a *ApiExecutor) AddAction(name string, action func(ctx simple_fsm.ContextO
 func (a *ApiExecutor) LoadStructure(methodsMap []model.Method) *ApiExecutor {
 	for _, method := range methodsMap {
 		a.Methods[method.Name] = method
-		log.Printf("Method '%s' fsm:\n%v", method.Name, method.Fsm)
-
 		obj, _ := json.MarshalIndent(method.Fsm, "", "    ")
-		log.Printf("Fsm as json:\n%v", string(obj))
+		log.Printf("Method '%s', Finite state machine as json:\n%v", method.Name, string(obj))
 
 		structure, err := simple_fsm.NewBuilder(a.Actions).FromJsonType(method.Fsm).Structure()
 		if err != nil {
@@ -100,60 +97,64 @@ func (a *ApiExecutor) Execute(request *Request) (Result, error) {
 	if method.IsEmpty() {
 		msg := fmt.Sprintf("Method '%s' was not recognized by executor", request.MethodName)
 		log.Printf("[ERROR] " + msg)
-		return Result{
-			Status: http.StatusBadRequest,
-			Data: msg,
-		}, errors.New(msg)
+		return NewResultMessage(http.StatusBadRequest, msg), errors.New(msg)
 	}
 
-	ok, err := validateParams(method, request.Params)
+	ok, err := checkToken(request)
 	if err != nil {
-		return Result{
-			Status: http.StatusBadRequest,
-			Data: err.Error(),
-		}, err
+		return NewResultMessage(http.StatusBadRequest, err.Error()), err
+	}
+	if !ok {
+		return NewResultMessage(http.StatusForbidden, "Provided token is not valid, or expired. Please provide, valid token or authorize with 'auth'"), nil
 	}
 
+	ok, err = validateParams(method, request.Params)
+	if err != nil {
+		return NewResultMessage(http.StatusBadRequest, err.Error()), err
+	}
 	if !ok {
-		return Result{
-			Status: http.StatusBadRequest,
-			Data: "Provided parameters are not valid",
-		}, nil
+		return NewResultMessage(http.StatusBadRequest, "Provided parameters are not valid"), nil
 	}
 
 	ok, err = checkPermissions(request)
-
 	if err != nil {
-		return Result{
-			Status: http.StatusBadRequest,
-			Data: err.Error(),
-		}, err
+		return NewResultMessage(http.StatusBadRequest, err.Error()), err
 	}
 	if !ok {
-		return Result{
-			Status: http.StatusForbidden,
-			Data: "No permissions to perform operation '" + request.MethodName + "'",
-		}, nil
+		return NewResultMessage(http.StatusForbidden, "No permissions to perform operation '" + request.MethodName + "'"), nil
 	}
 
 	result, err := a.executeRequest(request)
 	if err != nil {
-		return Result{
-			Status: http.StatusInternalServerError,
-			Data: "Probably something happende will fix it later!",
-		}, err
+		return NewResultMessage(http.StatusInternalServerError, err.Error()), err
 	}
 	return result, err
 }
 
 // checkPermissions
-// Checks user permissions to
+// Checks user permissions to execute method
 func checkPermissions(request *Request) (bool, error) {
 	if request.MethodName == "auth" {
 		return true, nil
 	} else {
-		if exists, err := model.CheckToken(request.Token); exists && err == nil {
-			//TODO: (when first action will be implemented) add exact action permission check
+		if token, err := model.TokenByValue(request.Token); err == nil{
+			if user, err := model.UserById(token.UserId); err == nil{
+				return user.IsAllowed(request.MethodName), nil
+			}
+		} else {
+			return false, err
+		}
+		return false, nil
+	}
+}
+
+// checkToken
+// Checks user token and it's expiration date
+func checkToken(request *Request) (bool, error) {
+	if request.MethodName == "auth" {
+		return true, nil
+	} else {
+		if valid, err := model.CheckToken(request.Token); valid && err == nil {
 			return true, nil
 		} else {
 			return false, err
@@ -202,7 +203,9 @@ func (a *ApiExecutor) executeRequest(req *Request) (Result, error) {
 	fsm.SetInput("methodName", req.MethodName)
 	fsm.SetInput("start_date", time.Now())
 	fsm.SetInput("failed", false)
+	log.Println("Provided parameters:")
 	for k, v := range req.Params {
+		//log.Printf("%s = %s", k, v)
 		fsm.SetInput(k, v)
 	}
 	execRes, err := fsm.Run()
@@ -211,7 +214,8 @@ func (a *ApiExecutor) executeRequest(req *Request) (Result, error) {
 	if err != nil {
 		log.Printf("Error occured during flow execution: %v", err)
 	}
-	return execRes.(Result), nil
+	log.Printf("Exec result %v", execRes)
+	return NewResultFrom(execRes), nil
 }
 
 // printFsmDump

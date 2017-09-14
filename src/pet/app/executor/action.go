@@ -5,7 +5,6 @@ import (
 	"pet/app/model"
 	"github.com/xenzh/gofsm"
 	"fmt"
-	"net/http"
 	"pet/app/shared/passhash"
 	"encoding/json"
 )
@@ -28,13 +27,6 @@ const (
 	update_values_key = "update_values"
 	set_key = "set"
 )
-
-// noAction
-// Simple do nothing as function
-func noAction(ctx simple_fsm.ContextOperator) error {
-	//do nothing
-	return nil
-}
 
 // list
 // Action that stands for mongoDB find query. Result will be set to context as "entity" (slice of interfaces)
@@ -210,29 +202,19 @@ func setToContext(ctx simple_fsm.ContextOperator) error {
 	}
 */
 func setResult(ctx simple_fsm.ContextOperator) error {
-	failed := get(failure, ctx)
-	if failed != nil {
+	if failed, _ := ctx.Raw(failure); failed != nil {
 		ctx.PutResult(failed)
 	} else {
-		if !ctx.Has(result_key) {
-			if !ctx.Has(response_key) {
-				var msg string
-				if name, _ := ctx.Str(methodName); name != "" {
-					msg = fmt.Sprintf("Flow '%s' structure, wasn't formed correctly! No result was set for this flow!", name)
-				} else {
-					msg = "Current flow structure, wasn't formed correctly! No result was set for this flow!"
-				}
-				ctx.PutResult(Result{
-					Status:http.StatusInternalServerError,
-					Data: msg,
-				})
-				log.Println("Result wasn't set by any action!!!")
-			} else {
-				responseMap := get(response_key, ctx).(map[string]interface{})
-				ctx.PutResult(processData(responseMap, ctx))
-			}
-		} else {
-			//return entity by default
+		// return response if it specified in actions
+		if ctx.Has(response_key) {
+			log.Printf("SET RESULT %v", get(response_key, ctx))
+			responseMap := get(response_key, ctx).(map[string]interface{})
+			ctx.PutResult(processData(responseMap, ctx))
+		}
+
+		//return entity by default
+		if !ctx.Has(result_key){
+			log.Printf("SET RESULT %v", get(entity_key, ctx))
 			ctx.PutResult(get(entity_key, ctx))
 		}
 	}

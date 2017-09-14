@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"pet/app/executor"
 	"pet/app/model"
+	"fmt"
+	"net/http/httputil"
 )
 
 var apiExecutor *executor.ApiExecutor
@@ -35,6 +37,7 @@ func StartServer(server *server.Server) {
 // A primary request handler function
 // Contains request parsing plus middleware requests logging
 func handle(w http.ResponseWriter, req *http.Request) {
+	log.Printf("[INFO] Processing request '%s' metadata:\n%s", req.RequestURI, meta(req))
 	request := executor.NewRequest(req)
 	log.Printf("[INFO] Processing %s request %s", req.Method, request.MethodName)
 	result, err := apiExecutor.Execute(request)
@@ -46,6 +49,14 @@ func handle(w http.ResponseWriter, req *http.Request) {
 		log.Printf("[INFO] Server response: %v", result)
 	}
 	respond(&result, w)
+}
+
+func meta(req *http.Request) string {
+	requestDump, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return string(requestDump)
 }
 
 // respond
@@ -65,8 +76,6 @@ func reloadApiMethods(w http.ResponseWriter, req *http.Request) {
 	//TODO: add security support here, for L3/Admin only
 	methods := *model.GetAllMethods()
 	apiExecutor.ReloadMethods(methods).LoadStructure(methods)
-	respond(&executor.Result{
-		Status: http.StatusAccepted,
-		Data: "Reload methods procedure started",
-	}, w)
+	result := executor.NewResultMessage(http.StatusAccepted, "Reload methods procedure started")
+	respond(&result, w)
 }

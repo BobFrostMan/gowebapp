@@ -3,6 +3,10 @@ package executor
 import (
 	"net/http"
 	"strings"
+	"io/ioutil"
+	"log"
+	"encoding/json"
+	"fmt"
 )
 
 type Request struct {
@@ -14,15 +18,47 @@ type Request struct {
 func NewRequest(raw *http.Request) *Request {
 	var request Request
 	raw.ParseForm()
-
 	request.MethodName = getMethodName(raw)
-	request.Token = raw.Form.Get("token")
 	request.Params = make(map[string]string)
 
+	// reading params from headers
+	for name, headers := range raw.Header {
+		name = strings.ToLower(name)
+		for _, h := range headers {
+			request.Params[name] = h
+		}
+	}
+
+	// reading params from url
 	for k, _ := range raw.Form {
-		//TODO: here we will get all headers even system we should re-think it
 		request.Params[k] = raw.Form.Get(k)
 	}
+
+	//reading params from body
+	if raw.Method == "PUT" || raw.Method == "POST"  {
+		body, err := ioutil.ReadAll(raw.Body)
+		defer raw.Body.Close()
+		fmt.Printf("%v", body)
+		if len(body) > 0 {
+			if err != nil {
+				log.Printf("Cannot read request body! Message:%s", err.Error())
+			} else {
+				var payload map[string]*json.RawMessage
+				err = json.Unmarshal(body, &payload)
+				if err != nil {
+					log.Printf("Failed to unmarshal object '%v'.\nMessage: %s", body, err.Error())
+				} else {
+					for k, _ := range payload {
+						var str interface{}
+						err = json.Unmarshal(*payload[k], &str)
+						request.Params[k] = fmt.Sprintf("%v", str)
+					}
+				}
+			}
+		}
+	}
+
+	request.Token = request.Params["token"]
 	return &request
 }
 
@@ -30,11 +66,9 @@ func NewRequest(raw *http.Request) *Request {
 // returns pretty request URL string from given request
 func getMethodName(req *http.Request) string {
 	var methodName string
-
 	if strings.Contains(req.URL.Path, "/api/") {
 		methodName = strings.Split(req.URL.Path, "/api/")[1]
 	}
-
 	return methodName
 }
 
