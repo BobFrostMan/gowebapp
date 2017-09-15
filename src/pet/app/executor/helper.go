@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 	"gopkg.in/mgo.v2/bson"
-	"fmt"
 	"net/http"
 	"encoding/json"
 )
@@ -51,14 +50,17 @@ func newWhereCondition(m map[string]interface{}) (where) {
 // setExists
 // Checks entity existence and set according value to context as "exists"
 func setExists(entity []interface{}, ctx simple_fsm.ContextOperator){
-	//TODO: proper existence handling
 	if len(entity) > 0 {
-		ent1 := entity[0].(bson.M)
-		if ent1["_id"] != nil || ent1["_id"] != "" {
-			ctx.Put(exists, true)
-		} else {
-			ctx.Put(exists, false)
+		exist := false
+		switch entity[0].(type) {
+		case bson.M:
+			ent1 := entity[0].(bson.M)
+			exist = ent1["_id"] != nil || ent1["_id"] != ""
+		case map[string]interface{}:
+			ent1 := entity[0].(map[string]interface{})
+			exist = ent1["_id"] != nil || ent1["_id"] != ""
 		}
+		ctx.Put(exists, exist)
 	} else {
 		ctx.Put(exists, false)
 	}
@@ -187,7 +189,7 @@ func processData(responseMap map[string]interface{}, ctx simple_fsm.ContextOpera
 	dataMap := make(map[string]interface{})
 
 	if code, present := responseMap["code"]; present {
-		res.Status = code.(int)
+		res.Status = int(code.(float64))
 	} else {
 		res.Status = http.StatusOK
 	}
@@ -236,7 +238,6 @@ func asStringsSlice(obj interface{}) []string {
 // asMap
 // Returns interface as map of interface values accessed by string keys
 func asMap(inputObj interface{}) map[string]interface{} {
-	//FIXME: stupidity but it works
 	var res map[string]interface{}
 
 	converted := getSingleObject(inputObj)
@@ -263,7 +264,7 @@ func getSingleObject(inputObj interface{}) interface{} {
 	case interface{}:
 		converted = obj
 	default:
-		fmt.Printf("Unsupported type: %T\n", converted)
+		log.Printf("Unsupported type: %T\n", converted)
 	}
 	return converted
 }

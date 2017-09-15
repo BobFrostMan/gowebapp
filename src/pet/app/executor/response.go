@@ -2,7 +2,6 @@ package executor
 
 import (
 	"log"
-	"fmt"
 )
 
 type Result struct {
@@ -35,12 +34,11 @@ func NewResultFrom(inputObj interface{}) Result {
 			} else {
 				result.Data = resultData
 			}
-			log.Printf("data:\n%s", resultData)
 		default:
-			fmt.Printf("Unsupported type: %T\n", obj)
+			log.Printf("Unsupported type: %T\n", obj)
 	}
 
-	log.Printf("Result data:\n%s", result.Data)
+	log.Printf("Server response data:\n%s", result.Data)
 	return result
 }
 

@@ -6,20 +6,19 @@ import (
 	"io/ioutil"
 	"log"
 	"encoding/json"
-	"fmt"
 )
 
 type Request struct {
 	MethodName string        `json:"name"`
 	Token      string        `json:"token"`
-	Params     map[string]string `json:"params"`
+	Params     map[string]interface{} `json:"params"`
 }
 
 func NewRequest(raw *http.Request) *Request {
 	var request Request
 	raw.ParseForm()
 	request.MethodName = getMethodName(raw)
-	request.Params = make(map[string]string)
+	request.Params = make(map[string]interface{})
 
 	// reading params from headers
 	for name, headers := range raw.Header {
@@ -38,7 +37,6 @@ func NewRequest(raw *http.Request) *Request {
 	if raw.Method == "PUT" || raw.Method == "POST"  {
 		body, err := ioutil.ReadAll(raw.Body)
 		defer raw.Body.Close()
-		fmt.Printf("%v", body)
 		if len(body) > 0 {
 			if err != nil {
 				log.Printf("Cannot read request body! Message:%s", err.Error())
@@ -51,14 +49,17 @@ func NewRequest(raw *http.Request) *Request {
 					for k, _ := range payload {
 						var str interface{}
 						err = json.Unmarshal(*payload[k], &str)
-						request.Params[k] = fmt.Sprintf("%v", str)
+						request.Params[k] = str
 					}
 				}
 			}
 		}
 	}
 
-	request.Token = request.Params["token"]
+	if token, present := request.Params["token"]; present{
+		request.Token = token.(string)
+	}
+
 	return &request
 }
 

@@ -16,7 +16,6 @@ const (
 	result_key = "result"
 	response_key = "response"
 	entity_key = "entity"
-	methodName = "methodName"
 )
 // context action params keys
 const (
@@ -68,8 +67,10 @@ func create(ctx simple_fsm.ContextOperator) error {
 		setFailureToContext(msg, ctx)
 		return nil
 	}
-	setExists(entity.([]interface{}), ctx)
-	setEntity(entity.([]interface{}), ctx)
+	res := make([]interface{}, 1)
+	res[0] = entity
+	setExists(res, ctx)
+	setEntity(res, ctx)
 	return nil
 }
 

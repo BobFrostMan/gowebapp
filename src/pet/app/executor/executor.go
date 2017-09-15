@@ -5,7 +5,6 @@ import (
 	"log"
 	"pet/app/model"
 	"fmt"
-	"reflect"
 	"net/http"
 	"errors"
 	"encoding/json"
@@ -62,7 +61,7 @@ func (a *ApiExecutor) LoadStructure(methodsMap []model.Method) *ApiExecutor {
 
 		structure, err := simple_fsm.NewBuilder(a.Actions).FromJsonType(method.Fsm).Structure()
 		if err != nil {
-			log.Printf("Failed to construct structure. Message: %s", err.Error())
+			log.Fatalf("Failed to construct structure. Message: %s", err.Error())
 		}
 		a.StructureMap[method.Name] = structure
 	}
@@ -164,20 +163,30 @@ func checkToken(request *Request) (bool, error) {
 
 // validateParams
 // Returns true, nil if all required parameters with valid types specified
-func validateParams(method model.Method, params map[string]string) (bool, error) {
+func validateParams(method model.Method, params map[string]interface{}) (bool, error) {
 	var notSpecified []model.Parameter
 	for _, param := range method.Parameters {
 		value := params[param.Name]
 		if param.Required {
-			if value != "" {
-				actualType := reflect.TypeOf(value).String()
+			if value != "" && value != nil{
+				actualType := getTypeName(value)
 				if actualType != param.Type {
 					msg := fmt.Sprintf("Wrong argument '%s' for method '%s'. Expected type '%s', but found '%s'", param.Name, method.Name, param.Type, actualType)
-					fmt.Printf("[ERROR] " + msg)
+					log.Printf("[ERROR] " + msg)
 					return false, errors.New(msg)
 				}
 			} else {
 				notSpecified = append(notSpecified, param)
+			}
+		} else {
+			if value != "" && value != nil {
+				// optional parameters check
+				actualType := getTypeName(value)
+				if actualType != param.Type {
+					msg := fmt.Sprintf("Wrong argument '%s' for method '%s'. Expected type '%s', but found '%s'", param.Name, method.Name, param.Type, actualType)
+					log.Printf("[ERROR] " + msg)
+					return false, errors.New(msg)
+				}
 			}
 		}
 	}
@@ -203,9 +212,7 @@ func (a *ApiExecutor) executeRequest(req *Request) (Result, error) {
 	fsm.SetInput("methodName", req.MethodName)
 	fsm.SetInput("start_date", time.Now())
 	fsm.SetInput("failed", false)
-	log.Println("Provided parameters:")
 	for k, v := range req.Params {
-		//log.Printf("%s = %s", k, v)
 		fsm.SetInput(k, v)
 	}
 	execRes, err := fsm.Run()
@@ -227,4 +234,25 @@ func printFsmDump(fsm *simple_fsm.Fsm) {
 	log.Printf("FSM Result: %v", r)
 	log.Printf("FSM Error is: %v", er)
 	log.Printf("Full FSM dump:\n%s", simple_fsm.Dump(fsm))
+}
+
+// getTypeName
+// returns type name as string, use type checking to define type
+func getTypeName(value interface{}) string {
+	if _, ok := value.(int); ok{
+		return "int"
+	}
+	if _, ok := value.(float64); ok{
+		return "float64"
+	}
+	if _, ok := value.(bool); ok{
+		return "bool"
+	}
+	if _, ok := value.(map[string]interface{}); ok{
+		return "map[string]interface{}"
+	}
+	if _, ok := value.(json.RawMessage); ok{
+		return "json.RawMessage"
+	}
+	return "string"
 }

@@ -52,6 +52,7 @@ func CreateEntity(collection string, insert bson.M) (interface{}, error) {
 	if err != nil {
 		log.Printf("Failed to find entity with params %s", insertQuery)
 	}
+
 	return insertQuery, err
 }
 

@@ -22,7 +22,7 @@ func ConfigRoutes(methods *[]model.Method) {
 	http.Handle("/", http.StripPrefix("/static/", http.FileServer(http.Dir("src/static"))))
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.HandleFunc("/api/", handle)
-	http.HandleFunc("/reload-api", reloadApiMethods)
+	http.HandleFunc("/reload", reloadApiMethods)
 }
 
 // StartServer
