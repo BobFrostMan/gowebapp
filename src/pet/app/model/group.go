@@ -2,77 +2,12 @@ package model
 
 import (
 	"gopkg.in/mgo.v2/bson"
-	"pet/app/shared/database"
-	"log"
-)
-
-// Database tables, collections, fields etc.
-const (
-	GroupsCollection = "PermissionGroups"
-)
-
-// Messages patterns
-const (
-	GroupNotFound = "Group '%s' wasn't found"
-	GroupNotCreated = "Group '%s' wasn't created"
-	GroupCreated = "Group '%s' was successfully created"
 )
 
 type Group struct {
-	ObjectID    bson.ObjectId `bson:"_id"`
+	ObjectID    bson.ObjectId `bson:"_id" json:"_id"`
 	ID          uint32 `db:"id" json:"id,omitempty" bson:"id,omitempty"` // use GroupID() instead for consistency with database types
 	Name        string `bson:"name" json:"name"`
 	Permissions []Permission `bson:"permissions" json:"permissions"`
-}
-
-// GroupCreate
-// Creates permission group with given name, and permissions
-func GroupCreate(name string, permissions []Permission) error {
-	var err error
-
-	if database.CheckConnection() {
-		session := database.Mongo.Copy()
-		defer session.Close()
-		c := session.DB(database.ReadConfig().MongoDB.Database).C(GroupsCollection)
-
-		group := &Group{
-			ObjectID:  bson.NewObjectId(),
-			Name: name,
-			Permissions: permissions,
-		}
-		err = c.Insert(group)
-	} else {
-		err = NoDBConnection
-	}
-
-	if err != nil {
-		log.Printf(GroupNotCreated, name)
-	} else {
-		log.Printf(GroupCreated, name)
-	}
-
-	return err
-}
-
-// GroupByName
-// Returns group by given name and error
-func GroupByName(name string) (*Group, error) {
-	var err error
-	var group Group
-
-	if database.CheckConnection() {
-		session := database.Mongo.Copy()
-		defer session.Close()
-		c := session.DB(database.ReadConfig().MongoDB.Database).C(GroupsCollection)
-		err = c.Find(bson.M{"name": name}).One(&group)
-	} else {
-		err = NoDBConnection
-	}
-
-	if err != nil {
-		log.Printf(GroupNotFound, name)
-	}
-
-	return &group, err
 }
 

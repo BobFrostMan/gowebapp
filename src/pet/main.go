@@ -32,9 +32,6 @@ func main() {
 	// Connect to database
 	database.Connect(config.Database)
 
-	// Create initial DB entities
-	createDefaultDBEntities()
-
 	// Configure API endpoint, register handlers
 	route.ConfigRoutes(model.GetAllMethods())
 
@@ -59,85 +56,4 @@ type configuration struct {
 // ParseJSON unmarshals bytes to structs
 func (c *configuration) ParseJSON(b []byte) error {
 	return json.Unmarshal(b, &c)
-}
-
-
-// *****************************************************************************
-//  DB preparations
-// *****************************************************************************
-
-// createDefaultDBEntities
-// Creates first permissions, group and user and saves them to DB (if not created yet)
-func createDefaultDBEntities() {
-	if _, err := model.MethodByName("auth"); err != nil {
-		err = model.CreateMethod("auth", []model.Parameter{
-			{ Name: "login", Required: true, Type: model.ParamTypeString },
-			{ Name: "pass", Required: true, Type: model.ParamTypeString },
-		}, []byte{
-		});
-	}
-
-	initialPerms := getInitPermissions()
-	for _, p := range initialPerms {
-		if _, err := model.PermissionByName(p.Name); err != nil {
-			//if permission not found create them
-			model.PermissionCreate(p.Name, p.Type, p.Value, p.Read, p.Update, p.Execute)
-		}
-	}
-	var permissions []model.Permission
-	for _, p := range initialPerms {
-		if permission, err := model.PermissionByName(p.Name); err == nil {
-			permissions = append(permissions, *permission)
-		} else {
-			log.Printf("Error occured during retieving permission group '%s'", permission)
-		}
-	}
-
-	// Create initial permission group
-	groupName := "initial"
-	group, err := model.GroupByName(groupName);
-	if err != nil {
-		model.GroupCreate(groupName, permissions)
-		//filling group again
-		group, _ = model.GroupByName(groupName);
-	}
-	//appending group to groups array
-	groups := []model.Group{}
-	groups = append(groups, *group)
-
-	// Creating initial user with initial permission groups
-	login := "Fluggegecheimen"
-	password := login
-	userName := "The Bandit"
-	if _, err := model.UserByLogin(login); err != nil {
-		model.UserCreate(login, userName, password, groups)
-	}
-}
-
-// *****************************************************************************
-//  Initial database values
-// *****************************************************************************
-func getInitPermissions() []model.Permission {
-	return []model.Permission{
-		{Name: "readMethod", Type: model.TypeMethod,
-			Value: "readSomeMethod",
-			Read:true,
-			Update:false,
-			Execute:false,
-		},
-		{Name: "executeMethod",
-			Type: model.TypeMethod,
-			Value: "executeSomeMethod",
-			Read:true,
-			Update:false,
-			Execute:true,
-		}, {
-			Name: "updateField",
-			Type: model.TypeField,
-			Value: "updateSomeField",
-			Read:true,
-			Update:true,
-			Execute:false,
-		},
-	}
 }

@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"pet/app/executor"
 	"pet/app/model"
+	"fmt"
+	"net/http/httputil"
 )
 
 var apiExecutor *executor.ApiExecutor
@@ -15,12 +17,12 @@ var apiExecutor *executor.ApiExecutor
 // ConfigRoutes
 // Registering handlers and binding them to according url
 func ConfigRoutes(methods *[]model.Method) {
-	apiExecutor = executor.NewExecutor().LoadMethods(*methods)
+	apiExecutor = executor.NewExecutor().LoadMethods(*methods).LoadStructure(*methods)
 
 	http.Handle("/", http.StripPrefix("/static/", http.FileServer(http.Dir("src/static"))))
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 	http.HandleFunc("/api/", handle)
-	http.HandleFunc("/reload-api", reloadApiMethods)
+	http.HandleFunc("/reload", reloadApiMethods)
 }
 
 // StartServer
@@ -35,6 +37,7 @@ func StartServer(server *server.Server) {
 // A primary request handler function
 // Contains request parsing plus middleware requests logging
 func handle(w http.ResponseWriter, req *http.Request) {
+	log.Printf("[INFO] Processing request '%s' metadata:\n%s", req.RequestURI, meta(req))
 	request := executor.NewRequest(req)
 	log.Printf("[INFO] Processing %s request %s", req.Method, request.MethodName)
 	result, err := apiExecutor.Execute(request)
@@ -46,6 +49,14 @@ func handle(w http.ResponseWriter, req *http.Request) {
 		log.Printf("[INFO] Server response: %v", result)
 	}
 	respond(&result, w)
+}
+
+func meta(req *http.Request) string {
+	requestDump, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return string(requestDump)
 }
 
 // respond
@@ -63,9 +74,8 @@ func respond(res *executor.Result, w http.ResponseWriter) {
 // Reloads all api methods from database
 func reloadApiMethods(w http.ResponseWriter, req *http.Request) {
 	//TODO: add security support here, for L3/Admin only
-	apiExecutor.ReloadMethods(*model.GetAllMethods())
-	respond(&executor.Result{
-		Status: http.StatusAccepted,
-		Data: "Reload methods procedure started",
-	}, w)
+	methods := *model.GetAllMethods()
+	apiExecutor.ReloadMethods(methods).LoadStructure(methods)
+	result := executor.NewResultMessage(http.StatusAccepted, "Reload methods procedure started")
+	respond(&result, w)
 }
