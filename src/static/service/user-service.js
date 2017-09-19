@@ -6,7 +6,7 @@ function userService(){
         console.log("Getting list of existing users")
         $http({
             method : "GET",
-            url : "/users"
+            url : "/api/users"
         }).then(
             function onSuccess(response) {
                 $scope.data = response.data;
@@ -17,14 +17,6 @@ function userService(){
                 console.error("Server responded with error: " +  $scope.status);
             }
         );
-    }
-
-    this.loginStub = function ($scope){
-        console.log("Invoke login stub")
-        $scope.name = $scope.login;
-        $scope.password = $scope.pass;
-        $scope.errVisible = "visible";
-        $scope.error = "You've entered " + $scope.name + " and " + $scope.password;
     }
 
     this.auth = function($scope, $http){
@@ -42,7 +34,7 @@ function userService(){
                 }
             }
 
-        $http.post("/auth", data, config).then(
+        $http.post("/api/auth", data, config).then(
             function(response){
                 $scope.data = response.data;
                 logSuccess(response);
