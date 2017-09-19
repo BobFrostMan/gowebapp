@@ -8,6 +8,7 @@
   },
   "Server": {
     "Hostname": "",
-    "Port": 80
+    "Port": 80,
+    "AllowedHosts" : ["http://localhost:4200"]
   }
 }
