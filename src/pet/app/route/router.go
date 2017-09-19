@@ -44,7 +44,7 @@ func StartServer(server *server.Server) {
 func handle(w http.ResponseWriter, req *http.Request) {
 	log.Printf("[INFO] Processing request '%s' metadata:\n%s", req.RequestURI, meta(req))
 	if isHostAllowed(req){
-		setCORSHeaders(w, req)
+		setResponseHeaders(w, req)
 	}
 	if isPreflighted(req) {
 		// Stop here if its Preflighted OPTIONS request
@@ -92,8 +92,9 @@ func reloadApiMethods(w http.ResponseWriter, req *http.Request) {
 	respond(&result, w)
 }
 
-// setCORSHeaders
-func setCORSHeaders(w http.ResponseWriter, req *http.Request){
+// setResponseHeaders
+// Sets basic response headers to response writer object
+func setResponseHeaders(w http.ResponseWriter, req *http.Request){
 	w.Header().Set("Access-Control-Allow-Origin",  req.Header.Get("Origin"))
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Headers",
@@ -101,11 +102,15 @@ func setCORSHeaders(w http.ResponseWriter, req *http.Request){
 
 }
 
+// isPreflighted
+// Returns true if request is prefligthed
 func isPreflighted(req *http.Request) bool {
+	// To make a CORS browser will send a preflight OPTIONS request first and then the 'real' request if accepted by the server
 	return req.Method == "OPTIONS"
 }
+
 // isHostAllowed
-// Performs host origin check and executes preflight request handling
+// Performs host origin check, returns true if requests are allowed from server
 func isHostAllowed(req *http.Request) bool{
 	host := req.Header.Get("Origin")
 	for _, allowed := range allowedHosts{
