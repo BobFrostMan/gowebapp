@@ -276,13 +276,77 @@ db.Users.insert({
                                     "read" : true,
                                     "update" : false,
                                     "execute" : true
+                                },
+                                {
+                                    "_id" : ObjectId("599ed05647384324b05de243"),
+                                    "name" : "executeMethod",
+                                    "type" : "method",
+                                    "value" : "getUser",
+                                    "read" : true,
+                                    "update" : false,
+                                    "execute" : true
                                 }
                             ]
                         }
                     ]
                 }
 );
+
+db.Users.insert({
+    "name" : "getUser",
+    "parameters" : [
+        {
+            "name" : "login",
+            "type" : "string",
+            "required" : true
+        }
+    ],
+    "fsm" : {
+        "states" : {
+            "start" : {
+                "start" : true,
+                "transitions" : {
+                    "start-find_user" : {
+                        "to" : "find_user",
+                        "guard" : {
+                            "type" : "always"
+                        },
+                        "action" : {
+                            "name" : "list",
+                            "params" : {
+                                "target" : "Users",
+                                "fields" : [
+                                    "login"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "find_user" : {
+                "parent" : "start",
+                "transitions" : {
+                    "find_users-result_returned" : {
+                        "to" : "result_returned",
+                        "guard" : {
+                            "type" : "always"
+                        },
+                        "action" : {
+                            "name" : "set_result"
+                        }
+                    }
+                }
+            },
+            "result_returned" : {
+                "parent" : "find_user",
+                "transitions" : {}
+            }
+        }
+    }
+});
+
 printAfter("Users", before)
+
 
 //-------------------------------------------------Token----------------------------------------------------------------
 before = printBefore("Token")
@@ -329,7 +393,7 @@ db.Method.insert(
                                 "fields" : [
                                     "login"
                                 ],
-                                "limit" : 1
+                                "limit" : 1.0
                             }
                         }
                     }
@@ -357,7 +421,7 @@ db.Method.insert(
                             "name" : "set_result",
                             "params" : {
                                 "response" : {
-                                    "code" : 403,
+                                    "code" : 403.0,
                                     "data" : [
                                         {
                                             "name" : "message",
@@ -414,7 +478,7 @@ db.Method.insert(
                                         "from" : "entity"
                                     }
                                 ],
-                                "limit" : 1
+                                "limit" : 1.0
                             }
                         }
                     },
@@ -426,7 +490,18 @@ db.Method.insert(
                             "value" : true
                         },
                         "action" : {
-                            "name" : "set_result"
+                            "name" : "set_result",
+                            "params" : {
+                                "response" : {
+                                    "code" : 403.0,
+                                    "data" : [
+                                        {
+                                            "name" : "message",
+                                            "value" : "Provided password is invalid"
+                                        }
+                                    ]
+                                }
+                            }
                         }
                     }
                 }
@@ -450,7 +525,7 @@ db.Method.insert(
                                         "type" : "time",
                                         "units" : "seconds",
                                         "operation" : "add",
-                                        "value" : 1800
+                                        "value" : 1800.0
                                     },
                                     "uuid" : {
                                         "type" : "uuid",
@@ -476,7 +551,7 @@ db.Method.insert(
                                         "type" : "time",
                                         "units" : "seconds",
                                         "operation" : "add",
-                                        "value" : 1800
+                                        "value" : 1800.0
                                     },
                                     "uuid" : {
                                         "type" : "uuid",
@@ -592,7 +667,7 @@ db.Method.insert(
                             "name" : "set_result",
                             "params" : {
                                 "response" : {
-                                    "code" : 200,
+                                    "code" : 200.0,
                                     "data" : [
                                         {
                                             "name" : "value",
@@ -603,6 +678,11 @@ db.Method.insert(
                                             "name" : "expiration",
                                             "value" : "expiration",
                                             "from" : "entity"
+                                        },
+                                        {
+                                            "name" : "username",
+                                            "value" : "name",
+                                            "from" : "last_entity"
                                         }
                                     ]
                                 }
@@ -625,7 +705,7 @@ db.Method.insert(
                             "name" : "set_result",
                             "params" : {
                                 "response" : {
-                                    "code" : 200,
+                                    "code" : 200.0,
                                     "data" : [
                                         {
                                             "name" : "value",
@@ -636,6 +716,11 @@ db.Method.insert(
                                             "name" : "expiration",
                                             "value" : "token_end_date",
                                             "from" : "context"
+                                        },
+                                        {
+                                            "name" : "username",
+                                            "value" : "name",
+                                            "from" : "last_entity"
                                         }
                                     ]
                                 }
