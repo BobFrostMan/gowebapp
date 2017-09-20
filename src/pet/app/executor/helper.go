@@ -189,7 +189,12 @@ func processData(responseMap map[string]interface{}, ctx simple_fsm.ContextOpera
 	dataMap := make(map[string]interface{})
 
 	if code, present := responseMap["code"]; present {
-		res.Status = int(code.(float64))
+		switch code.(type){
+		case int:
+			res.Status = code.(int)
+		default:
+			res.Status = int(code.(float64))
+		}
 	} else {
 		res.Status = http.StatusOK
 	}
