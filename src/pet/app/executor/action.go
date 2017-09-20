@@ -203,21 +203,19 @@ func setToContext(ctx simple_fsm.ContextOperator) error {
 	}
 */
 func setResult(ctx simple_fsm.ContextOperator) error {
-	if failed, _ := ctx.Raw(failure); failed != nil {
-		ctx.PutResult(failed)
-	} else {
-		// return response if it specified in actions
-		if ctx.Has(response_key) {
+	failed, _ := ctx.Raw(failure)
+	switch {
+		case ctx.Has(response_key):
 			log.Printf("SET RESULT %v", get(response_key, ctx))
 			responseMap := get(response_key, ctx).(map[string]interface{})
 			ctx.PutResult(processData(responseMap, ctx))
-		}
-
-		//return entity by default
-		if !ctx.Has(result_key){
+		case failed != nil:
+			ctx.PutResult(failed)
+		case !ctx.Has(result_key):
 			log.Printf("SET RESULT %v", get(entity_key, ctx))
 			ctx.PutResult(get(entity_key, ctx))
-		}
+		default:
+			//do nothing, result already in context
 	}
 	return nil
 }
