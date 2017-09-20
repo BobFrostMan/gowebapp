@@ -58,7 +58,6 @@ func (a *ApiExecutor) LoadStructure(methodsMap []model.Method) *ApiExecutor {
 		a.Methods[method.Name] = method
 		obj, _ := json.MarshalIndent(method.Fsm, "", "    ")
 		log.Printf("Method '%s', Finite state machine as json:\n%v", method.Name, string(obj))
-
 		structure, err := simple_fsm.NewBuilder(a.Actions).FromJsonType(method.Fsm).Structure()
 		if err != nil {
 			log.Fatalf("Failed to construct structure. Message: %s", err.Error())

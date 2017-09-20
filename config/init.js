@@ -292,59 +292,6 @@ db.Users.insert({
                 }
 );
 
-db.Users.insert({
-    "name" : "getUser",
-    "parameters" : [
-        {
-            "name" : "login",
-            "type" : "string",
-            "required" : true
-        }
-    ],
-    "fsm" : {
-        "states" : {
-            "start" : {
-                "start" : true,
-                "transitions" : {
-                    "start-find_user" : {
-                        "to" : "find_user",
-                        "guard" : {
-                            "type" : "always"
-                        },
-                        "action" : {
-                            "name" : "list",
-                            "params" : {
-                                "target" : "Users",
-                                "fields" : [
-                                    "login"
-                                ]
-                            }
-                        }
-                    }
-                }
-            },
-            "find_user" : {
-                "parent" : "start",
-                "transitions" : {
-                    "find_users-result_returned" : {
-                        "to" : "result_returned",
-                        "guard" : {
-                            "type" : "always"
-                        },
-                        "action" : {
-                            "name" : "set_result"
-                        }
-                    }
-                }
-            },
-            "result_returned" : {
-                "parent" : "find_user",
-                "transitions" : {}
-            }
-        }
-    }
-});
-
 printAfter("Users", before)
 
 
@@ -1342,6 +1289,61 @@ db.Method.insert(
             },
             "project_found" : {
                 "parent" : "find_project",
+                "transitions" : {}
+            }
+        }
+    }
+}
+);
+
+db.Method.insert(
+{
+    "name" : "getUser",
+    "parameters" : [
+        {
+            "name" : "login",
+            "type" : "string",
+            "required" : true
+        }
+    ],
+    "fsm" : {
+        "states" : {
+            "start" : {
+                "start" : true,
+                "transitions" : {
+                    "start-find_user" : {
+                        "to" : "find_user",
+                        "guard" : {
+                            "type" : "always"
+                        },
+                        "action" : {
+                            "name" : "list",
+                            "params" : {
+                                "target" : "Users",
+                                "fields" : [
+                                    "login"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "find_user" : {
+                "parent" : "start",
+                "transitions" : {
+                    "find_user-result_returned" : {
+                        "to" : "result_returned",
+                        "guard" : {
+                            "type" : "always"
+                        },
+                        "action" : {
+                            "name" : "set_result"
+                        }
+                    }
+                }
+            },
+            "result_returned" : {
+                "parent" : "find_user",
                 "transitions" : {}
             }
         }

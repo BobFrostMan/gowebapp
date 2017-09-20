@@ -60,9 +60,9 @@ func setExists(entity []interface{}, ctx simple_fsm.ContextOperator){
 			ent1 := entity[0].(map[string]interface{})
 			exist = ent1["_id"] != nil || ent1["_id"] != ""
 		}
-		ctx.Put(exists, exist)
+		ctx.PutParent(exists, exist)
 	} else {
-		ctx.Put(exists, false)
+		ctx.PutParent(exists, false)
 	}
 }
 
@@ -73,9 +73,20 @@ func setEntity(entity []interface{}, ctx simple_fsm.ContextOperator){
 	if ctx.Has(entity_key) {
 		previous := get(entity_key, ctx)
 		log.Printf("Found last entity. It will be set as 'last_entity' set to context\n%v", previous)
-		ctx.Put(last_entity_key, previous)
+		ctx.PutParent(last_entity_key, previous)
 	}
-	ctx.Put(entity_key, entity)
+	ctx.PutParent(entity_key, entity)
+}
+
+// saveEntityAs
+// Set given entity to context under specified name key.
+func saveEntityAs(entity []interface{}, ctx simple_fsm.ContextOperator){
+	saveAs := getStr(save_as_key, ctx)
+	log.Printf("Saved as value is: %v", saveAs)
+	if saveAs != "" {
+		ctx.PutParent(saveAs, entity)
+		ctx.PutParent(save_as_key, "")
+	}
 }
 
 // resolveValue
@@ -199,7 +210,6 @@ func processData(responseMap map[string]interface{}, ctx simple_fsm.ContextOpera
 		res.Status = http.StatusOK
 	}
 	dataArr := responseMap["data"].([]interface{})
-
 	for _, value := range dataArr {
 		whereCond := newWhereCondition(value.(map[string]interface{}))
 		dataMap[whereCond.Name] = handleFrom(whereCond, ctx)
@@ -277,11 +287,11 @@ func getSingleObject(inputObj interface{}) interface{} {
 // setFailureToContext
 // Set flags 'exists' and 'failed'. Also set failure object to context by 'failure' key
 func setFailureToContext(msg string, ctx simple_fsm.ContextOperator) {
-	ctx.Put(exists, false)
-	ctx.Put(failed, true)
+	ctx.PutParent(exists, false)
+	ctx.PutParent(failed, true)
 	m := make(map[string]interface{})
 	m["message"] = msg
-	ctx.Put(failure, NewResult(http.StatusInternalServerError, m))
+	ctx.PutParent(failure, NewResult(http.StatusInternalServerError, m))
 }
 
 // createTime

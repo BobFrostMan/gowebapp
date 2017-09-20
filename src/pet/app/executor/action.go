@@ -22,6 +22,7 @@ const (
 	override_key = "override"
 	target_key = "target"
 	limit_key = "limit"
+	save_as_key = "save_as"
 	find_key = "find"
 	update_values_key = "update_values"
 	set_key = "set"
@@ -46,6 +47,7 @@ func list(ctx simple_fsm.ContextOperator) error {
 		setFailureToContext(msg, ctx)
 	}
 	setExists(entity, ctx)
+	saveEntityAs(entity, ctx)
 	setEntity(entity, ctx)
 	return nil
 }
@@ -70,6 +72,7 @@ func create(ctx simple_fsm.ContextOperator) error {
 	res := make([]interface{}, 1)
 	res[0] = entity
 	setExists(res, ctx)
+	saveEntityAs(res, ctx)
 	setEntity(res, ctx)
 	return nil
 }
@@ -99,6 +102,7 @@ func update(ctx simple_fsm.ContextOperator) error {
 	}
 
 	setExists(entity, ctx)
+	saveEntityAs(entity, ctx)
 	setEntity(entity, ctx)
 	return nil
 }
@@ -124,7 +128,7 @@ func authorize(ctx simple_fsm.ContextOperator) error {
 		setFailureToContext("Wrong password specified", ctx)
 		return nil
 	}
-	ctx.Put(failed, false)
+	ctx.PutParent(failed, false)
 	return nil
 }
 
@@ -163,11 +167,11 @@ func setToContext(ctx simple_fsm.ContextOperator) error {
 		}
 		if override {
 			value := resolveValue(v)
-			ctx.Put(k, value)
+			ctx.PutParent(k, value)
 		} else {
 			if !ctx.Has(k) {
 				value := resolveValue(v)
-				ctx.Put(k, value)
+				ctx.PutParent(k, value)
 			}
 		}
 	}
