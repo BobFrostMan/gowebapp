@@ -9,6 +9,10 @@ import (
 	"net/http"
 	"encoding/json"
 	"pet/app/shared/passhash"
+	"strings"
+	"bytes"
+	"encoding/gob"
+//	"fmt"
 )
 // general context keys
 const (
@@ -103,6 +107,8 @@ func resolveValue(valueMap interface{}, ctx simple_fsm.ContextOperator) interfac
 			return createUUID(obj)
 		case "hash":
 			return createHash(obj, ctx)
+		case "placeholder":
+			return resolveStringValue(obj, ctx)
 		default:
 			//do nothing
 		}
@@ -257,7 +263,6 @@ func asStringsSlice(obj interface{}) []string {
 // Returns interface as map of interface values accessed by string keys
 func asMap(inputObj interface{}) map[string]interface{} {
 	var res map[string]interface{}
-
 	converted := getSingleObject(inputObj)
 	usersBytes, err := json.Marshal(converted)
 	if err != nil {
@@ -277,12 +282,12 @@ func asMap(inputObj interface{}) map[string]interface{} {
 func getSingleObject(inputObj interface{}) interface{} {
 	var converted interface{}
 	switch obj := inputObj.(type) {
-	case []interface{}:
-		converted = obj[0]
-	case interface{}:
-		converted = obj
-	default:
-		log.Printf("Unsupported type: %T\n", converted)
+		case []interface{}:
+			converted = obj[0]
+		case interface{}:
+			converted = obj
+		default:
+			log.Printf("Unsupported type: %T\n", converted)
 	}
 	return converted
 }
@@ -357,6 +362,95 @@ func createHash(hashMap map[string]interface{}, ctx simple_fsm.ContextOperator) 
 	}
 	log.Printf("Value " + from_key + " is mandatory for creating hash")
 	return nil
+}
+
+func resolveStringValue(placeholderMap map[string]interface{}, ctx simple_fsm.ContextOperator) interface{} {
+	var result string
+	if val, present := placeholderMap["template"]; present {
+		result = val.(string);
+	}
+
+	if placeHolderObj, present := placeholderMap["replace"]; present {
+		dataArr := placeHolderObj.([]interface{})
+		log.Printf("Replace obj is: %v", dataArr)
+		for _, value := range dataArr {
+			whereCond := newWhereCondition(value.(map[string]interface{}))
+			resolvedValue := handleFrom(whereCond, ctx)
+			log.Printf("Resolved value is: %v, %T", resolvedValue, resolvedValue)
+
+			//resolvedBytes, err := GetBytes(resolvedValue)
+			resolvedBytes, err := json.Marshal(resolvedValue)
+			if err != nil {
+				log.Printf("Failed to marshal object '%v'.\nMessage: %s", resolvedValue, err.Error())
+			}
+
+			log.Printf("Resolved bytes: %v", resolvedBytes)
+			if err != nil{
+				log.Printf("Error during bytes receiving: %v", err)
+			}
+
+			//var raw json.RawMessage
+			//var raw string
+
+			//[]interface{}, for JSON arrays
+			//map[string]interface{}, for JSON objects
+			switch resolvedValue.(type){
+				case []interface{}:
+					var raw []string
+					err = json.Unmarshal(resolvedBytes, &raw)
+					if err != nil {
+						log.Printf("Failed to unmarshal object '%v'.\nMessage: %s", resolvedBytes, err.Error())
+					}
+					resolvedStr := raw
+					log.Printf("Resolved json.Raw message is: %v", resolvedStr)
+					log.Printf("Placeholder: %v", whereCond.Name)
+					//fmt.Sprintf("%v", resolvedStr)
+					result = strings.Replace(result, whereCond.Name, asString(resolvedStr), -1)
+					log.Printf("Resolved string: %v", result)
+			case interface{}:
+				var raw string
+				err = json.Unmarshal(resolvedBytes, &raw)
+				if err != nil {
+					log.Printf("Failed to unmarshal object '%v'.\nMessage: %s", resolvedBytes, err.Error())
+				}
+				resolvedStr := raw
+				log.Printf("Resolved json.Raw message is: %v", resolvedStr)
+				log.Printf("Placeholder: %v", whereCond.Name)
+				result = strings.Replace(result, whereCond.Name, resolvedStr, -1)
+				log.Printf("Resolved string: %v", result)
+
+			}
+				//resolvedStr := string(raw)
+			/*
+			resolvedStr := raw
+			log.Printf("Resolved json.Raw message is: %v", resolvedStr)
+			log.Printf("Placeholder: %v", whereCond.Name)
+			result = strings.Replace(result, whereCond.Name, resolvedStr, -1)
+			log.Printf("Resolved string: %v", result)
+			*/
+		}
+	}
+	return asMap(result)
+}
+
+func asString(obj []string) string {
+	var res string = "["
+	for _, v := range obj {
+		res += "\"" + v + "\","
+	}
+	res = res[:len(res)-1] + "]"
+	return res
+}
+
+
+func GetBytes(key interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(key)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 // getStr

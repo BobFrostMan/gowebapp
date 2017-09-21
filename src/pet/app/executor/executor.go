@@ -136,6 +136,7 @@ func checkPermissions(request *Request) (bool, error) {
 		return true, nil
 	} else {
 		if token, err := model.TokenByValue(request.Token); err == nil{
+			log.Printf("Token id %v %T", token.UserId, token.UserId)
 			if user, err := model.UserById(token.UserId); err == nil{
 				return isOperationAllowed(user, request.MethodName), nil
 			}

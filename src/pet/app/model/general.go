@@ -20,6 +20,7 @@ func EntityArray(collection string, by bson.M, limit int, resultObj []interface{
 		session := database.Mongo.Copy()
 		defer session.Close()
 		c := session.DB(database.ReadConfig().MongoDB.Database).C(collection)
+		log.Printf("By: %v", by)
 		if limit == 0 {
 			err = c.Find(by).All(&resultObj)
 		} else {

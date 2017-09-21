@@ -1546,6 +1546,144 @@ db.Method.insert(
     }
 })
 
+db.Method.insert(
+{
+    "_id" : ObjectId("59c3f907aef8aee3c467fd6c"),
+    "name" : "getUserProjects",
+    "parameters" : [
+        {
+            "name" : "login",
+            "required" : true,
+            "type" : "string"
+        }
+    ],
+    "fsm" : {
+        "states" : {
+            "start" : {
+                "start" : true,
+                "transitions" : {
+                    "start-find_user" : {
+                        "to" : "find_user",
+                        "guard" : {
+                            "type" : "always"
+                        },
+                        "action" : {
+                            "name" : "list",
+                            "params" : {
+                                "target" : "Users",
+                                "fields" : [
+                                    "login"
+                                ],
+                                "limit" : 1,
+                                "save_as" : "user"
+                            }
+                        }
+                    }
+                }
+            },
+            "find_user" : {
+                "transitions" : {
+                    "find_user-user_found" : {
+                        "to" : "user_found",
+                        "guard" : {
+                            "type" : "context",
+                            "key" : "exists",
+                            "value" : true
+                        },
+                        "action" : {
+                            "name" : "set_to_context",
+                            "params" : {
+                                "set" : {
+                                    "user_projects_request" : {
+                                        "type" : "placeholder",
+                                        "template" : "{ \"$in\" : user_projects }",
+                                        "replace" : [
+                                            {
+                                                "name" : "user_projects",
+                                                "value" : "projects",
+                                                "from" : "user"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "find_user-user_not_found" : {
+                        "to" : "user_not_found",
+                        "guard" : {
+                            "type" : "context",
+                            "key" : "exists",
+                            "value" : false
+                        },
+                        "action" : {
+                            "name" : "set_result",
+                            "params" : {
+                                "response" : {
+                                    "code" : 405,
+                                    "data" : [
+                                        {
+                                            "name" : "message",
+                                            "value" : "Specified user doesn't exist"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "user_not_found" : {
+                "transitions" : {}
+            },
+            "user_found" : {
+                "transitions" : {
+                    "user_found-find_projects" : {
+                        "to" : "find_projects",
+                        "guard" : {
+                            "type" : "always"
+                        },
+                        "action" : {
+                            "name" : "list",
+                            "params" : {
+                                "target" : "Project",
+                                "fields" : [
+                                    "name"
+                                ],
+                                "where" : [
+                                    {
+                                        "name" : "name",
+                                        "value" : "user_projects_request",
+                                        "from" : "context"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "find_projects" : {
+                "transitions" : {
+                    "find_projects-found_projects" : {
+                        "to" : "found_projects",
+                        "guard" : {
+                            "type" : "context",
+                            "key" : "failed",
+                            "value" : false
+                        },
+                        "action" : {
+                            "name" : "set_result"
+                        }
+                    }
+                }
+            },
+            "found_projects" : {
+                "transitions" : {}
+            }
+        }
+    }
+})
+
 printAfter("Method", before)
 
 
