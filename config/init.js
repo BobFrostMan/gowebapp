@@ -1,10 +1,7 @@
 //MongoDB initial database filling (just as am example)
 
-//Usage: for MongoDB v3+:
+//Usage: for MongoDB v2.6+:
 //mongo localhost:27017/pet-operational path_to_this_file/init_entities.js
-
-//Usage: for MongoDB v2:
-//mongo pet-operational --eval path_to_this_file/init_entities.js
 
 var before
 
@@ -27,7 +24,32 @@ function printBefore(collection){
     return before
 }
 //--------------------------------------------Clean up------------------------------------------------------------------
+print("\nDropping existing database: " + db)
 db.dropDatabase();
+print("Database '" + db + "' removed successfully\n")
+
+//--------------------------------------------Indexes-------------------------------------------------------------------
+print("Creating indexes...")
+
+print("Creating unique index for Users collection: by \"login\"")
+db.Users.createIndex( { "login": 1 }, { unique: true } )
+
+print("Creating unique index for Method collection: by \"name\"")
+db.Method.createIndex( { "name": 1 }, { unique: true } )
+
+print("Creating unique index for PermissionGroups collection: by \"name\"")
+db.PermissionGroups.createIndex( { "name": 1 }, { unique: true } )
+
+print("Creating unique index for Permissions collection: by \"name\" and \"type\"")
+db.Permissions.createIndex( { "name": 1, "type" :1 }, { unique: true } )
+
+print("Creating unique index for Project collection: by \"name\"")
+db.Project.createIndex( { "name": 1 }, { unique: true } )
+
+print("Creating unique index for Workflow collection: by \"name\"")
+db.Workflow.createIndex( { "name": 1 }, { unique: true } )
+
+print("Index creation finished successfully.")
 
 //--------------------------------------------Workflow------------------------------------------------------------------
 before = printBefore("Workflow")
@@ -340,14 +362,14 @@ db.Method.insert(
                                 "fields" : [
                                     "login"
                                 ],
-                                "limit" : 1.0
+                                "limit" : 1,
+                                "save_as" : "user"
                             }
                         }
                     }
                 }
             },
             "find_user" : {
-                "parent" : "start",
                 "transitions" : {
                     "find_user-user_found" : {
                         "to" : "user_found",
@@ -382,7 +404,6 @@ db.Method.insert(
                 }
             },
             "user_found" : {
-                "parent" : "find_user",
                 "transitions" : {
                     "user_found-pass_verified" : {
                         "to" : "pass_verified",
@@ -398,11 +419,9 @@ db.Method.insert(
                 }
             },
             "user_not_found" : {
-                "parent" : "find_user",
                 "transitions" : {}
             },
             "pass_verified" : {
-                "parent" : "user_found",
                 "transitions" : {
                     "pass_verified-find_token" : {
                         "to" : "find_token",
@@ -454,7 +473,6 @@ db.Method.insert(
                 }
             },
             "find_token" : {
-                "parent" : "pass_verified",
                 "transitions" : {
                     "find_token-token_found" : {
                         "to" : "token_found",
@@ -511,7 +529,6 @@ db.Method.insert(
                 }
             },
             "token_found" : {
-                "parent" : "find_token",
                 "transitions" : {
                     "token_found-update_token" : {
                         "to" : "update_token",
@@ -560,7 +577,6 @@ db.Method.insert(
                 }
             },
             "token_not_found" : {
-                "parent" : "find_token",
                 "transitions" : {
                     "token_not_found-create_token" : {
                         "to" : "create_token",
@@ -601,7 +617,6 @@ db.Method.insert(
                 }
             },
             "create_token" : {
-                "parent" : "token_not_found",
                 "transitions" : {
                     "create_token-token_created" : {
                         "to" : "token_created",
@@ -629,7 +644,7 @@ db.Method.insert(
                                         {
                                             "name" : "username",
                                             "value" : "name",
-                                            "from" : "last_entity"
+                                            "from" : "user"
                                         }
                                     ]
                                 }
@@ -639,7 +654,6 @@ db.Method.insert(
                 }
             },
             "update_token" : {
-                "parent" : "token_found",
                 "transitions" : {
                     "update_token-token_updated" : {
                         "to" : "token_updated",
@@ -667,7 +681,7 @@ db.Method.insert(
                                         {
                                             "name" : "username",
                                             "value" : "name",
-                                            "from" : "last_entity"
+                                            "from" : "user"
                                         }
                                     ]
                                 }
@@ -677,15 +691,12 @@ db.Method.insert(
                 }
             },
             "token_updated" : {
-                "parent" : "update_token",
                 "transitions" : {}
             },
             "token_created" : {
-                "parent" : "create_token",
                 "transitions" : {}
             },
             "pass_failed" : {
-                "parent" : "pass_verified",
                 "transitions" : {}
             }
         }
@@ -717,7 +728,6 @@ db.Method.insert(
                 }
             },
             "find_users" : {
-                "parent" : "start",
                 "transitions" : {
                     "find_users-result_returned" : {
                         "to" : "result_returned",
@@ -731,7 +741,6 @@ db.Method.insert(
                 }
             },
             "result_returned" : {
-                "parent" : "find_users",
                 "transitions" : {}
             }
         }
@@ -787,7 +796,6 @@ db.Method.insert(
                 }
             },
             "find_workflow" : {
-                "parent" : "start",
                 "transitions" : {
                     "find_workflow-workflow_already_exists" : {
                         "to" : "workflow_already_exists",
@@ -832,7 +840,6 @@ db.Method.insert(
                 }
             },
             "create_workflow" : {
-                "parent" : "find_workflow",
                 "transitions" : {
                     "create_workflow-workflow_created" : {
                         "to" : "result_returned",
@@ -859,15 +866,12 @@ db.Method.insert(
                 }
             },
             "workflow_creation_error" : {
-                "parent" : "create_workflow",
                 "transitions" : {}
             },
             "result_returned" : {
-                "parent" : "create_workflow",
                 "transitions" : {}
             },
             "workflow_already_exists" : {
-                "parent" : "find_workflow",
                 "transitions" : {}
             }
         }
@@ -913,7 +917,6 @@ db.Method.insert(
                 }
             },
             "find_issue_fields" : {
-                "parent" : "start",
                 "transitions" : {
                     "find_issue_fields-issue_fields_already_exists" : {
                         "to" : "issue_fields_already_exists",
@@ -958,7 +961,6 @@ db.Method.insert(
                 }
             },
             "create_issue_fields" : {
-                "parent" : "find_issue_fields",
                 "transitions" : {
                     "create_issue_fields-issue_fields_created" : {
                         "to" : "issue_fields_created",
@@ -985,15 +987,12 @@ db.Method.insert(
                 }
             },
             "issue_fields_creation_error" : {
-                "parent" : "create_issue_fields",
                 "transitions" : {}
             },
             "issue_fields_created" : {
-                "parent" : "create_issue_fields",
                 "transitions" : {}
             },
             "issue_fields_already_exists" : {
-                "parent" : "find_issue_fields",
                 "transitions" : {}
             }
         }
@@ -1044,7 +1043,6 @@ db.Method.insert(
                 }
             },
             "find_project" : {
-                "parent" : "start",
                 "transitions" : {
                     "find_project-project_found" : {
                         "to" : "project_found",
@@ -1080,7 +1078,6 @@ db.Method.insert(
                 }
             },
             "project_not_found" : {
-                "parent" : "find_project",
                 "transitions" : {
                     "project_not_found-find_workflow" : {
                         "to" : "find_workflow",
@@ -1107,7 +1104,6 @@ db.Method.insert(
                 }
             },
             "find_workflow" : {
-                "parent" : "project_not_found",
                 "transitions" : {
                     "find_workflow-workflow_not_found" : {
                         "to" : "workflow_not_found",
@@ -1143,7 +1139,6 @@ db.Method.insert(
                 }
             },
             "workflow_found" : {
-                "parent" : "find_workflow",
                 "transitions" : {
                     "workflow_found-find_issue_fields" : {
                         "to" : "find_issue_fields",
@@ -1170,7 +1165,6 @@ db.Method.insert(
                 }
             },
             "find_issue_fields" : {
-                "parent" : "workflow_found",
                 "transitions" : {
                     "find_issue_fields-issue_fields_found" : {
                         "to" : "issue_fields_found",
@@ -1206,7 +1200,6 @@ db.Method.insert(
                 }
             },
             "issue_fields_found" : {
-                "parent" : "find_issue_fields",
                 "transitions" : {
                     "issue_fields_found-create_project" : {
                         "to" : "create_project",
@@ -1245,7 +1238,6 @@ db.Method.insert(
                 }
             },
             "create_project" : {
-                "parent" : "issue_fields_found",
                 "transitions" : {
                     "create_project-project_created" : {
                         "to" : "project_created",
@@ -1272,23 +1264,18 @@ db.Method.insert(
                 }
             },
             "project_creation_error" : {
-                "parent" : "create_project",
                 "transitions" : {}
             },
             "project_created" : {
-                "parent" : "create_project",
                 "transitions" : {}
             },
             "workflow_not_found" : {
-                "parent" : "find_workflow",
                 "transitions" : {}
             },
             "issue_fields_not_found" : {
-                "parent" : "find_issue_fields",
                 "transitions" : {}
             },
             "project_found" : {
-                "parent" : "find_project",
                 "transitions" : {}
             }
         }
@@ -1329,7 +1316,6 @@ db.Method.insert(
                 }
             },
             "find_user" : {
-                "parent" : "start",
                 "transitions" : {
                     "find_user-result_returned" : {
                         "to" : "result_returned",
@@ -1343,7 +1329,6 @@ db.Method.insert(
                 }
             },
             "result_returned" : {
-                "parent" : "find_user",
                 "transitions" : {}
             }
         }
