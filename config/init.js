@@ -139,7 +139,7 @@ printAfter("IssueFields", before)
 before = printBefore("Project")
 db.Project.insert({
     "issue_fields_name" : "standard",
-    "name" : "EPM-CIT2",
+    "name" : "epm-cit2",
     "workflow_name" : "standard"
 });
 printAfter("Project", before)
@@ -178,37 +178,97 @@ printAfter("Permissions", before)
 //------------------------------------------------PermissionGroups------------------------------------------------------
 before = printBefore("PermissionGroups")
 db.PermissionGroups.insert({
-    "name" : "initial",
+   "name" : "SUPER_USER",
+   "permissions" : [
+       {
+           "name" : "executeMethod",
+           "type" : "method",
+           "value" : "users",
+           "read" : true,
+           "update" : false,
+           "execute" : true
+       },
+       {
+           "name" : "executeMethod",
+           "type" : "method",
+           "value" : "createWorkflow",
+           "read" : true,
+           "update" : false,
+           "execute" : true
+       },
+       {
+           "name" : "executeMethod",
+           "type" : "method",
+           "value" : "createIssuefields",
+           "read" : true,
+           "update" : false,
+           "execute" : true
+       },
+       {
+           "name" : "executeMethod",
+           "type" : "method",
+           "value" : "createProject",
+           "read" : true,
+           "update" : false,
+           "execute" : true
+       },
+       {
+           "name" : "executeMethod",
+           "type" : "method",
+           "value" : "getUser",
+           "read" : true,
+           "update" : false,
+           "execute" : true
+       },
+       {
+           "name" : "executeMethod",
+           "type" : "method",
+           "value" : "getProjects",
+           "read" : true,
+           "update" : false,
+           "execute" : true
+       },
+       {
+           "name" : "executeMethod",
+           "type" : "method",
+           "value" : "createUser",
+           "read" : true,
+           "update" : false,
+           "execute" : true
+        }
+   ]
+})
+db.PermissionGroups.insert(
+{
+    "name" : "READ_ONLY",
     "permissions" : [
         {
-            "_id" : ObjectId("599ed05547384324b05de23f"),
-            "name" : "readMethod",
-            "type" : "method",
-            "value" : "readSomeMethod",
-            "read" : true,
-            "update" : false,
-            "execute" : false
-        },
-        {
-            "_id" : ObjectId("599ed05647384324b05de240"),
             "name" : "executeMethod",
             "type" : "method",
-            "value" : "executeSomeMethod",
+            "value" : "users",
             "read" : true,
             "update" : false,
             "execute" : true
         },
         {
-            "_id" : ObjectId("599ed05647384324b05de241"),
-            "name" : "updateField",
-            "type" : "field",
-            "value" : "updateSomeField",
+            "name" : "executeMethod",
+            "type" : "method",
+            "value" : "getUser",
             "read" : true,
-            "update" : true,
-            "execute" : false
+            "update" : false,
+            "execute" : true
+        },
+        {
+            "name" : "executeMethod",
+            "type" : "method",
+            "value" : "getProjects",
+            "read" : true,
+            "update" : false,
+            "execute" : true
         }
     ]
 })
+
 printAfter("PermissionGroups", before)
 
 
@@ -218,98 +278,14 @@ db.Users.insert({
                     "login" : "Fluggegecheimen",
                     "name" : "The Bandit",
                     "password" : "$2a$10$nILEHcUGd/QGlSb358u5JuzZMzHJtArQXA9MoD0sxOl7jGLHHYX9y",
-                    "groups" : [
-                        {
-                            "_id" : ObjectId("599ed05647384324b05de242"),
-                            "name" : "initial",
-                            "permissions" : [
-                                {
-                                    "_id" : ObjectId("599ed05547384324b05de23f"),
-                                    "name" : "readMethod",
-                                    "type" : "method",
-                                    "value" : "readSomeMethod",
-                                    "read" : true,
-                                    "update" : false,
-                                    "execute" : false
-                                },
-                                {
-                                    "_id" : ObjectId("599ed05647384324b05de240"),
-                                    "name" : "executeMethod",
-                                    "type" : "method",
-                                    "value" : "executeSomeMethod",
-                                    "read" : true,
-                                    "update" : false,
-                                    "execute" : true
-                                },
-                                {
-                                    "_id" : ObjectId("599ed05647384324b05de241"),
-                                    "name" : "updateField",
-                                    "type" : "field",
-                                    "value" : "updateSomeField",
-                                    "read" : true,
-                                    "update" : true,
-                                    "execute" : false
-                                }
-                            ]
-                        }
-                    ]
+                    "groups" : [ "SUPER_USER"]
                 });
 db.Users.insert({
                     "login" : "user",
                     "name" : "Just user",
                     "password" : "$2a$10$VOzwuvQQv3JQv29ZGDBbM.yeABpWywzxVt8uCzIAwhydUnTt/7tjG",
                     "groups" : [
-                        {
-                            "_id" : ObjectId("599ed05647384324b05de242"),
-                            "name" : "initial",
-                            "permissions" : [
-                                {
-                                    "_id" : ObjectId("599ed05647384324b05de240"),
-                                    "name" : "executeMethod",
-                                    "type" : "method",
-                                    "value" : "users",
-                                    "read" : true,
-                                    "update" : false,
-                                    "execute" : true
-                                },
-                                {
-                                    "_id" : ObjectId("599ed05647384324b05de241"),
-                                    "name" : "executeMethod",
-                                    "type" : "method",
-                                    "value" : "createWorkflow",
-                                    "read" : true,
-                                    "update" : false,
-                                    "execute" : true
-                                },
-                                {
-                                    "_id" : ObjectId("599ed05647384324b05de243"),
-                                    "name" : "executeMethod",
-                                    "type" : "method",
-                                    "value" : "createIssuefields",
-                                    "read" : true,
-                                    "update" : false,
-                                    "execute" : true
-                                },
-                                {
-                                    "_id" : ObjectId("599ed05647384324b05de243"),
-                                    "name" : "executeMethod",
-                                    "type" : "method",
-                                    "value" : "createProject",
-                                    "read" : true,
-                                    "update" : false,
-                                    "execute" : true
-                                },
-                                {
-                                    "_id" : ObjectId("599ed05647384324b05de243"),
-                                    "name" : "executeMethod",
-                                    "type" : "method",
-                                    "value" : "getUser",
-                                    "read" : true,
-                                    "update" : false,
-                                    "execute" : true
-                                }
-                            ]
-                        }
+                       "SUPER_USER"
                     ]
                 }
 );
@@ -1335,6 +1311,240 @@ db.Method.insert(
     }
 }
 );
+
+db.Method.insert(
+{
+    "_id" : ObjectId("59c371ea36bd2f4eba24b494"),
+    "name" : "getProjects",
+    "parameters" : [],
+    "fsm" : {
+        "states" : {
+            "start" : {
+                "start" : true,
+                "transitions" : {
+                    "start-find_projects" : {
+                        "to" : "find_projects",
+                        "guard" : {
+                            "type" : "always"
+                        },
+                        "action" : {
+                            "name" : "list",
+                            "params" : {
+                                "target" : "Project",
+                                "fields":[]
+                            }
+                        }
+                    }
+                }
+            },
+            "find_projects" : {
+                "transitions" : {
+                    "find_projects-result_returned" : {
+                        "to" : "result_returned",
+                        "guard" : {
+                            "type" : "always"
+                        },
+                        "action" : {
+                            "name" : "set_result"
+                        }
+                    }
+                }
+            },
+            "result_returned" : {
+                "transitions" : {}
+            }
+        }
+    }
+}
+);
+
+db.Method.insert(
+{
+    "name" : "createUser",
+    "parameters" : [
+        {
+            "name" : "login",
+            "required" : true,
+            "type" : "string"
+        },
+        {
+            "name" : "name",
+            "required" : true,
+            "type" : "string"
+        },
+        {
+            "name" : "pass",
+            "required" : true,
+            "type" : "string"
+        },
+        {
+            "name" : "project",
+            "required" : true,
+            "type" : "string"
+        }
+    ],
+    "fsm" : {
+        "states" : {
+            "start" : {
+                "start" : true,
+                "transitions" : {
+                    "start-find_project" : {
+                        "to" : "find_project",
+                        "guard" : {
+                            "type" : "always"
+                        },
+                        "action" : {
+                            "name" : "list",
+                            "params" : {
+                                "target" : "Project",
+                                "fields" : [
+                                    "name"
+                                ],
+                                "where" : [
+                                    {
+                                        "name" : "name",
+                                        "value" : "project",
+                                        "from" : "context"
+                                    }
+                                ],
+                                "limit" : 1,
+                                "save_as" : "user_project"
+                            }
+                        }
+                    }
+                }
+            },
+            "find_project" : {
+                "transitions" : {
+                    "find_project-project_found" : {
+                        "to" : "project_found",
+                        "guard" : {
+                            "type" : "context",
+                            "key" : "exists",
+                            "value" : true
+                        },
+                        "action" : {}
+                    },
+                    "find_project-project_not_found" : {
+                        "to" : "project_not_found",
+                        "guard" : {
+                            "type" : "context",
+                            "key" : "exists",
+                            "value" : false
+                        },
+                        "action" : {
+                            "name" : "set_result",
+                            "params" : {
+                                "response" : {
+                                    "code" : 405,
+                                    "data" : [
+                                        {
+                                            "name" : "message",
+                                            "value" : "Can't create user. Reason: Specified project doesn't exist"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "project_not_found" : {
+                "transitions" : {}
+            },
+            "project_found" : {
+                "transitions" : {
+                    "project_found-passhash_generated" : {
+                        "to" : "passhash_generated",
+                        "guard" : {
+                            "type" : "always"
+                        },
+                        "action" : {
+                            "name" : "set_to_context",
+                            "params" : {
+                                "set" : {
+                                    "override" : true,
+                                    "password_hash" : {
+                                        "type" : "hash",
+                                        "from" : "pass"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "passhash_generated" : {
+                "transitions" : {
+                    "passhash_generated-create_user" : {
+                        "to" : "create_user",
+                        "guard" : {
+                            "type" : "context",
+                            "key" : "failed",
+                            "value" : false
+                        },
+                        "action" : {
+                            "name" : "create",
+                            "params" : {
+                                "target" : "Users",
+                                "fields" : [
+                                    "login",
+                                    "name",
+                                    "pass",
+                                    "projects"
+                                ],
+                                "where" : [
+                                    {
+                                        "name" : "pass",
+                                        "value" : "password_hash",
+                                        "from" : "context"
+                                    },
+                                    {
+                                        "name" : "projects",
+                                        "value" : "user_project",
+                                        "from" : "context"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "create_user" : {
+                "transitions" : {
+                    "create_user-user_created" : {
+                        "to" : "user_created",
+                        "guard" : {
+                            "type" : "context",
+                            "key" : "failed",
+                            "value" : false
+                        },
+                        "action" : {
+                            "name" : "set_result"
+                        }
+                    },
+                    "create_user-user_creation_error" : {
+                        "to" : "user_creation_error",
+                        "guard" : {
+                            "type" : "context",
+                            "key" : "failed",
+                            "value" : true
+                        },
+                        "action" : {
+                            "name" : "set_result"
+                        }
+                    }
+                }
+            },
+            "user_creation_error" : {
+                "transitions" : {}
+            },
+            "user_created" : {
+                "transitions" : {}
+            }
+        }
+    }
+})
 
 printAfter("Method", before)
 

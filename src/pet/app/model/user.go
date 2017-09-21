@@ -17,21 +17,9 @@ type User struct {
 	Login    string `json:"login"`
 	Name     string `json:"name"`
 	Password string `json:"password"`
-	Groups   []Group `json:"groups"`
+	Groups   []string `json:"groups"`
 }
 
-// IsAllowed
-// Returns true if operation allowed for user object
-func (u *User) IsAllowed(operation string) bool {
-	for _, group := range u.Groups{
-		for _, permission := range group.Permissions{
-			if permission.Value == operation{
-				return permission.Execute
-			}
-		}
-	}
-	return false
-}
 
 // UserById
 // Returns user by given _id and error

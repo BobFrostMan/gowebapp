@@ -8,6 +8,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"net/http"
 	"encoding/json"
+	"pet/app/shared/passhash"
 )
 // general context keys
 const (
@@ -91,7 +92,7 @@ func saveEntityAs(entity []interface{}, ctx simple_fsm.ContextOperator){
 
 // resolveValue
 // Processing value from valueMap
-func resolveValue(valueMap interface{}) interface{} {
+func resolveValue(valueMap interface{}, ctx simple_fsm.ContextOperator) interface{} {
 	obj := asMap(valueMap)
 	objType, present := obj["type"]
 	if present {
@@ -100,6 +101,8 @@ func resolveValue(valueMap interface{}) interface{} {
 			return createTime(obj)
 		case "uuid":
 			return createUUID(obj)
+		case "hash":
+			return createHash(obj, ctx)
 		default:
 			//do nothing
 		}
@@ -338,6 +341,22 @@ func createUUID(uuidJsonMap map[string]interface{}) interface{} {
 		return val
 	}
 	return uuid.NewV4().String()
+}
+
+// createHash
+// Creates new hash value based on given (stored by key "value")
+// If value is "new" creates new uuid object in string representation
+func createHash(hashMap map[string]interface{}, ctx simple_fsm.ContextOperator) interface{} {
+	if val, present := hashMap[from_key]; present {
+		hashable := getStr(val.(string), ctx)
+		if hash, err := passhash.HashString(hashable); err != nil {
+			log.Printf("Error during passhash generation %s", err.Error())
+		} else {
+			return hash
+		}
+	}
+	log.Printf("Value " + from_key + " is mandatory for creating hash")
+	return nil
 }
 
 // getStr

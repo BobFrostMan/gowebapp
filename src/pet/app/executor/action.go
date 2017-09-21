@@ -166,11 +166,11 @@ func setToContext(ctx simple_fsm.ContextOperator) error {
 			continue
 		}
 		if override {
-			value := resolveValue(v)
+			value := resolveValue(v, ctx)
 			ctx.PutParent(k, value)
 		} else {
 			if !ctx.Has(k) {
-				value := resolveValue(v)
+				value := resolveValue(v, ctx)
 				ctx.PutParent(k, value)
 			}
 		}

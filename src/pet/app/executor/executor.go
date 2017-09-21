@@ -137,13 +137,28 @@ func checkPermissions(request *Request) (bool, error) {
 	} else {
 		if token, err := model.TokenByValue(request.Token); err == nil{
 			if user, err := model.UserById(token.UserId); err == nil{
-				return user.IsAllowed(request.MethodName), nil
+				return isOperationAllowed(user, request.MethodName), nil
 			}
 		} else {
 			return false, err
 		}
 		return false, nil
 	}
+}
+
+// IsAllowed
+// Returns true if operation allowed for user object
+func isOperationAllowed(user *model.User, operation string) bool {
+	if groups, err := model.GetGroups(user.Groups); err == nil {
+		for _, group := range groups {
+			for _, permission := range group.Permissions {
+				if permission.Value ==  operation {
+					return permission.Execute
+				}
+			}
+		}
+	}
+	return false
 }
 
 // checkToken
