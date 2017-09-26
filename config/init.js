@@ -140,7 +140,19 @@ before = printBefore("Project")
 db.Project.insert({
     "issue_fields_name" : "standard",
     "name" : "epm-cit2",
-    "workflow_name" : "standard"
+    "workflow_name" : "standard",
+    "participants" : [
+            "user", "Fluggegecheimen"
+        ]
+});
+db.Project.insert(
+{
+    "issue_fields_name" : "standard",
+    "name" : "epm-cit",
+    "workflow_name" : "standard",
+    "participants" : [
+        "user"
+    ]
 });
 printAfter("Project", before)
 
@@ -1266,13 +1278,51 @@ db.Method.insert(
         {
             "name" : "login",
             "type" : "string",
-            "required" : true
+            "required" : false
+        },
+        {
+            "name" : "name",
+            "type" : "string",
+            "required" : false
         }
     ],
     "fsm" : {
         "states" : {
-            "start" : {
+            "prepare" : {
                 "start" : true,
+                "transitions" : {
+                    "prepare-start" : {
+                        "to" : "start",
+                        "guard" : {
+                            "type" : "always"
+                        },
+                        "action" : {
+                            "name" : "set_to_context",
+                            "params" : {
+                                "set" : {
+                                    "req_arr" : {
+                                        "type" : "object_array",
+                                        "where" : [
+                                            {
+                                                "name" : "name",
+                                                "value" : "name",
+                                                "from" : "context"
+                                            },
+                                            {
+                                                "name" : "login",
+                                                "value" : "login",
+                                                "from" : "context"
+                                            }
+                                        ],
+                                        "save_as" : "req_arr"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "start" : {
                 "transitions" : {
                     "start-find_user" : {
                         "to" : "find_user",
@@ -1284,7 +1334,14 @@ db.Method.insert(
                             "params" : {
                                 "target" : "Users",
                                 "fields" : [
-                                    "login"
+                                    "$or"
+                                ],
+                                "where" : [
+                                    {
+                                        "name" : "$or",
+                                        "value" : "req_arr",
+                                        "from" : "context"
+                                    }
                                 ]
                             }
                         }
@@ -1548,7 +1605,6 @@ db.Method.insert(
 
 db.Method.insert(
 {
-    "_id" : ObjectId("59c3f907aef8aee3c467fd6c"),
     "name" : "getUserProjects",
     "parameters" : [
         {
@@ -1595,9 +1651,9 @@ db.Method.insert(
                             "params" : {
                                 "set" : {
                                     "user_projects_request" : {
-                                        "type" : "placeholder",
-                                        "template" : "{ \"$in\" : user_projects }",
-                                        "replace" : [
+                                        "type" : "map_entry",
+                                        "key" : "$in",
+                                        "where" : [
                                             {
                                                 "name" : "user_projects",
                                                 "value" : "projects",

@@ -109,6 +109,12 @@ func resolveValue(valueMap interface{}, ctx simple_fsm.ContextOperator) interfac
 			return createHash(obj, ctx)
 		case "placeholder":
 			return resolveStringValue(obj, ctx)
+		case "map_entry":
+			return resolveMapEntry(obj, ctx)
+		case "array":
+			return resolveArray(obj, ctx, false)
+		case "object_array":
+			return resolveArray(obj, ctx, true)
 		default:
 			//do nothing
 		}
@@ -420,17 +426,52 @@ func resolveStringValue(placeholderMap map[string]interface{}, ctx simple_fsm.Co
 				log.Printf("Resolved string: %v", result)
 
 			}
-				//resolvedStr := string(raw)
-			/*
-			resolvedStr := raw
-			log.Printf("Resolved json.Raw message is: %v", resolvedStr)
-			log.Printf("Placeholder: %v", whereCond.Name)
-			result = strings.Replace(result, whereCond.Name, resolvedStr, -1)
-			log.Printf("Resolved string: %v", result)
-			*/
 		}
 	}
 	return asMap(result)
+}
+
+func resolveMapEntry(mapToResolve map[string]interface{}, ctx simple_fsm.ContextOperator) interface{} {
+	resultMap := make(map[string]interface{})
+	var key string
+	if val, present := mapToResolve["key"]; present {
+		key = val.(string);
+	}
+
+	if placeHolderObj, present := mapToResolve["where"]; present {
+		dataArr := placeHolderObj.([]interface{})
+
+		for _, value := range dataArr {
+			whereCond := newWhereCondition(value.(map[string]interface{}))
+			resolvedValue := handleFrom(whereCond, ctx)
+			log.Printf("Resolved value is: %v, %T", resolvedValue, resolvedValue)
+			if resolvedValue != nil{
+				resultMap[key] = resolvedValue
+			}
+		}
+	}
+	return interface{}(resultMap)
+}
+
+func resolveArray(arrToResolve map[string]interface{}, ctx simple_fsm.ContextOperator, useObjects bool) interface{} {
+	var result []interface{}
+	if placeHolderObj, present := arrToResolve["where"]; present {
+		dataArr := placeHolderObj.([]interface{})
+		result = make([]interface{}, 0)
+		for _, value := range dataArr {
+			whereCond := newWhereCondition(value.(map[string]interface{}))
+			resolvedValue := handleFrom(whereCond, ctx)
+			log.Printf("Resolved value is: %v, %T", resolvedValue, resolvedValue)
+			if useObjects {
+				tmp := make(map[string]interface{})
+				tmp[whereCond.Name] = resolvedValue
+				result = append(result, tmp)
+			} else {
+				result = append(result, resolvedValue)
+			}
+		}
+	}
+	return interface{}(result)
 }
 
 func asString(obj []string) string {
